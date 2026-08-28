@@ -1,0 +1,326 @@
+// Prisma schema — Sistema de Controle de Estoque (SMS)
+// Inclui modelos de domínio, modelos exigidos pelo Better-Auth e tabela de auditoria.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TipoUnidade {
+  ALMOXARIFADO_CENTRAL
+  UBS
+  ESF
+  CAPS
+  HOSPITAL
+  PRONTO_ATENDIMENTO
+  FARMACIA
+  OUTRO
+}
+
+enum SituacaoUnidade {
+  ATIVA
+  INATIVA
+}
+
+enum CategoriaProduto {
+  MEDICAMENTO
+  MEDICO_HOSPITALAR
+  LIMPEZA_HIGIENE
+}
+
+enum SituacaoProduto {
+  ATIVO
+  INATIVO
+}
+
+enum TipoMovimentacao {
+  ENTRADA_COMPRA
+  ENTRADA_DOACAO
+  ENTRADA_TRANSFERENCIA
+  SAIDA_DISTRIBUICAO
+  SAIDA_PERDA
+  SAIDA_VENCIMENTO
+  AJUSTE_INVENTARIO
+}
+
+enum StatusRequisicao {
+  ABERTA
+  EM_ANALISE
+  APROVADA
+  SEPARACAO
+  EM_TRANSPORTE
+  ENTREGUE
+  CANCELADA
+}
+
+enum PerfilUsuario {
+  ADMINISTRADOR
+  GESTOR_SAUDE
+  ALMOXARIFE
+  RESPONSAVEL_UNIDADE
+}
+
+model Unidade {
+  id               String          @id @default(cuid())
+  codigo           String          @unique
+  nome             String
+  tipo             TipoUnidade
+  cnpj             String?
+  endereco         String
+  bairro           String
+  cidade           String
+  cep              String
+  telefone         String
+  email            String
+  responsavel      String
+  situacao         SituacaoUnidade @default(ATIVA)
+  isAlmoxarifado   Boolean         @default(false)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  usuarios            Usuario[]
+  cotas               Cota[]
+  requisicoesOrigem   Requisicao[]       @relation("UnidadeSolicitante")
+  movimentacoesDestino Movimentacao[]    @relation("UnidadeDestino")
+  saldos              SaldoEstoque[]
+  inventarios         Inventario[]
+}
+
+model Produto {
+  id                String            @id @default(cuid())
+  codigoInterno     String            @unique
+  codigoBarras      String?           @unique
+  descricao         String
+  categoria         CategoriaProduto
+  unidadeMedida     String
+  unidadeCompra     String?
+  fatorConversao    Int               @default(1)
+  fabricante        String?
+  estoqueMinimo     Int               @default(0)
+  estoqueMaximo     Int               @default(0)
+  localizacaoFisica String?
+  situacao          SituacaoProduto   @default(ATIVO)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  lotes           Lote[]
+  cotas           Cota[]
+  movimentacoes   Movimentacao[]
+  saldos          SaldoEstoque[]
+  itensRequisicao ItemRequisicao[]
+  contagens       ContagemInventario[]
+}
+
+model Lote {
+  id              String   @id @default(cuid())
+  produtoId       String
+  produto         Produto  @relation(fields: [produtoId], references: [id])
+  numeroLote      String
+  dataFabricacao  DateTime?
+  dataValidade    DateTime
+  quantidade      Int
+  createdAt       DateTime @default(now())
+
+  movimentacoes Movimentacao[]
+
+  @@unique([produtoId, numeroLote])
+}
+
+model SaldoEstoque {
+  id         String  @id @default(cuid())
+  unidadeId  String
+  unidade    Unidade @relation(fields: [unidadeId], references: [id])
+  produtoId  String
+  produto    Produto @relation(fields: [produtoId], references: [id])
+  quantidade Int     @default(0)
+  updatedAt  DateTime @updatedAt
+
+  @@unique([unidadeId, produtoId])
+}
+
+model Cota {
+  id                 String    @id @default(cuid())
+  unidadeId          String
+  unidade            Unidade   @relation(fields: [unidadeId], references: [id])
+  produtoId          String
+  produto            Produto   @relation(fields: [produtoId], references: [id])
+  quantidadeAutorizada Int
+  periodo            String    // "MENSAL" | "TRIMESTRAL" | "SEMESTRAL" | "ANUAL"
+  dataInicio         DateTime
+  dataTermino        DateTime
+  quantidadeUtilizada Int      @default(0)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  historico HistoricoCota[]
+}
+
+model HistoricoCota {
+  id           String   @id @default(cuid())
+  cotaId       String
+  cota         Cota     @relation(fields: [cotaId], references: [id])
+  quantidade   Int
+  requisicaoId String?
+  createdAt    DateTime @default(now())
+}
+
+model Movimentacao {
+  id                String           @id @default(cuid())
+  tipo              TipoMovimentacao
+  produtoId         String
+  produto           Produto          @relation(fields: [produtoId], references: [id])
+  loteId            String?
+  lote              Lote?            @relation(fields: [loteId], references: [id])
+  unidadeDestinoId  String?
+  unidadeDestino    Unidade?         @relation("UnidadeDestino", fields: [unidadeDestinoId], references: [id])
+  quantidade        Int
+  numeroNotaFiscal  String?
+  fornecedor        String?
+  dataMovimentacao  DateTime         @default(now())
+  usuarioId         String
+  usuario           Usuario          @relation(fields: [usuarioId], references: [id])
+  observacoes       String?
+  createdAt         DateTime         @default(now())
+
+  @@index([tipo])
+  @@index([dataMovimentacao])
+}
+
+model Requisicao {
+  id            String           @id @default(cuid())
+  numero        String           @unique
+  unidadeId     String
+  unidade       Unidade          @relation("UnidadeSolicitante", fields: [unidadeId], references: [id])
+  status        StatusRequisicao @default(ABERTA)
+  justificativa String?
+  extraordinaria Boolean         @default(false)
+  autorizacaoExcepcional Boolean @default(false)
+  solicitanteId String
+  solicitante   Usuario          @relation(fields: [solicitanteId], references: [id])
+  itens         ItemRequisicao[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([status])
+  @@index([unidadeId])
+}
+
+model ItemRequisicao {
+  id                  String     @id @default(cuid())
+  requisicaoId        String
+  requisicao          Requisicao @relation(fields: [requisicaoId], references: [id])
+  produtoId           String
+  produto             Produto    @relation(fields: [produtoId], references: [id])
+  quantidadeSolicitada Int
+  quantidadeAprovada   Int?
+}
+
+model Inventario {
+  id         String   @id @default(cuid())
+  unidadeId  String
+  unidade    Unidade  @relation(fields: [unidadeId], references: [id])
+  tipo       String   // GERAL | ROTATIVO
+  status     String   // ABERTO | FINALIZADO
+  dataInicio DateTime @default(now())
+  dataFim    DateTime?
+
+  contagens ContagemInventario[]
+}
+
+model ContagemInventario {
+  id                String     @id @default(cuid())
+  inventarioId      String
+  inventario        Inventario @relation(fields: [inventarioId], references: [id])
+  produtoId         String
+  produto           Produto    @relation(fields: [produtoId], references: [id])
+  quantidadeSistema Int
+  quantidadeContada Int
+  divergencia       Int
+  createdAt         DateTime   @default(now())
+}
+
+model Usuario {
+  id           String         @id @default(cuid())
+  authUserId   String         @unique
+  nome         String
+  email        String         @unique
+  perfil       PerfilUsuario
+  unidadeId    String?
+  unidade      Unidade?       @relation(fields: [unidadeId], references: [id])
+  ativo        Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+
+  movimentacoes Movimentacao[]
+  requisicoes   Requisicao[]
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  acao         String
+  entidade     String
+  entidadeId   String?
+  usuarioId    String?
+  usuarioEmail String?
+  detalhes     String?
+  createdAt    DateTime @default(now())
+
+  @@index([entidade])
+  @@index([createdAt])
+}
+
+// ----- Modelos exigidos pelo Better-Auth (adapter Prisma) -----
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  issuer                String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}

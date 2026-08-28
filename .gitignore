@@ -1,0 +1,17 @@
+node_modules
+.next
+dist
+build
+coverage
+.env
+.env.local
+*.log
+.DS_Store
+prisma/migrations/dev.db*
+next-env.d.ts
+*.tsbuildinfo
+
+# build artifacts / throwaway
+scripts/seed.cjs
+scripts/seed.mjs
+scripts/cookies.txt
