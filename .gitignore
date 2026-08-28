@@ -15,3 +15,5 @@ next-env.d.ts
 scripts/seed.cjs
 scripts/seed.mjs
 scripts/cookies.txt
+
+package-lock.json
