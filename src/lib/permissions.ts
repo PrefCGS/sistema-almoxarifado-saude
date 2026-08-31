@@ -16,29 +16,28 @@ export type Acao =
   | "relatorio:ver"
   | "auditoria:ver";
 
+const PERMISSOES_OPERACAO: Acao[] = [
+  "dashboard:ver",
+  "unidade:gerenciar",
+  "produto:gerenciar",
+  "usuario:gerenciar",
+  "cota:gerenciar",
+  "cota:excecao",
+  "movimentacao:gerenciar",
+  "requisicao:criar",
+  "requisicao:aprovar",
+  "requisicao:separar",
+  "requisicao:entregar",
+  "inventario:gerenciar",
+  "relatorio:ver",
+  "auditoria:ver",
+];
+
+// OWNER (Secretaria de TI, definido via env) tem controle pleno do sistema.
 const MATRIZ: Record<PerfilUsuario, Acao[]> = {
-  ADMINISTRADOR: [
-    "dashboard:ver",
-    "unidade:gerenciar",
-    "produto:gerenciar",
-    "usuario:gerenciar",
-    "cota:gerenciar",
-    "cota:excecao",
-    "movimentacao:gerenciar",
-    "requisicao:criar",
-    "requisicao:aprovar",
-    "requisicao:separar",
-    "requisicao:entregar",
-    "inventario:gerenciar",
-    "relatorio:ver",
-    "auditoria:ver",
-  ],
-  GESTOR_SAUDE: [
-    "dashboard:ver",
-    "cota:excecao",
-    "requisicao:aprovar",
-    "relatorio:ver",
-  ],
+  OWNER: PERMISSOES_OPERACAO,
+  ADMINISTRADOR: PERMISSOES_OPERACAO,
+  GESTOR_SAUDE: ["dashboard:ver", "cota:excecao", "requisicao:aprovar", "relatorio:ver"],
   ALMOXARIFE: [
     "dashboard:ver",
     "movimentacao:gerenciar",
@@ -48,11 +47,7 @@ const MATRIZ: Record<PerfilUsuario, Acao[]> = {
     "inventario:gerenciar",
     "relatorio:ver",
   ],
-  RESPONSAVEL_UNIDADE: [
-    "dashboard:ver",
-    "requisicao:criar",
-    "relatorio:ver",
-  ],
+  RESPONSAVEL_UNIDADE: ["dashboard:ver", "requisicao:criar", "relatorio:ver"],
 };
 
 export function temPermissao(perfil: PerfilUsuario, acao: Acao): boolean {
@@ -64,6 +59,7 @@ export function permissoesDoPerfil(perfil: PerfilUsuario): Acao[] {
 }
 
 export const LABEL_PERFIL: Record<PerfilUsuario, string> = {
+  OWNER: "Secretaria de TI",
   ADMINISTRADOR: "Administrador",
   GESTOR_SAUDE: "Gestor da Saúde",
   ALMOXARIFE: "Almoxarife",

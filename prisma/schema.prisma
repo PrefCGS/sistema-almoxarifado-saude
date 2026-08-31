@@ -58,6 +58,7 @@ enum StatusRequisicao {
 }
 
 enum PerfilUsuario {
+  OWNER
   ADMINISTRADOR
   GESTOR_SAUDE
   ALMOXARIFE

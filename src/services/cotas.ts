@@ -38,7 +38,7 @@ export function verificarCota(params: {
  * Apenas Gestor da Saúde (ou Administrador) pode autorizar exceção de cota.
  */
 export function podeAutorizarExcecao(perfil: PerfilUsuario): boolean {
-  return perfil === "GESTOR_SAUDE" || perfil === "ADMINISTRADOR";
+  return perfil === "OWNER" || perfil === "GESTOR_SAUDE" || perfil === "ADMINISTRADOR";
 }
 
 /**

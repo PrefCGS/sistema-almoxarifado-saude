@@ -1,8 +1,8 @@
-import { prisma } from "@/lib/prisma";
-import { json, erro, requireAuth } from "@/lib/api";
-import { podeTransicionar, proximoStatus } from "@/services/requisicoes";
-import { verificarCota, podeAutorizarExcecao, quantidadeAprovadaCota } from "@/services/cotas";
+import { erro, json, requireAuth } from "@/lib/api";
 import { registrarAuditoria } from "@/lib/audit";
+import { prisma } from "@/lib/prisma";
+import { podeAutorizarExcecao, quantidadeAprovadaCota, verificarCota } from "@/services/cotas";
+import { podeTransicionar } from "@/services/requisicoes";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAuth();
@@ -75,5 +75,3 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   });
   return json(atualizada);
 }
-
-export { proximoStatus };

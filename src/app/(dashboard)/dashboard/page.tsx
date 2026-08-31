@@ -1,6 +1,16 @@
 import { prisma } from "@/lib/prisma";
 import { diasParaVencer } from "@/lib/utils";
 import Link from "next/link";
+import {
+  Package,
+  BarChart3,
+  AlertTriangle,
+  Clock,
+  ArrowLeftRight,
+  ChevronRight,
+  TrendingUp,
+  TrendingDown,
+} from "lucide-react";
 
 export default async function DashboardPage() {
   const [totalProdutos, saldos, lotes, movMes, porCategoria] = await Promise.all([
@@ -31,27 +41,65 @@ export default async function DashboardPage() {
   const valorEstoque = saldos.reduce((acc, s) => acc + s.quantidade, 0);
 
   const cards = [
-    { titulo: "Total de produtos", valor: totalProdutos },
-    { titulo: "Itens em estoque", valor: valorEstoque },
-    { titulo: "Abaixo do mínimo", valor: abaixoMinimo, danger: true },
-    { titulo: "Vencendo (≤30d)", valor: proximosVencimento, warning: true },
-    { titulo: "Distribuições no mês", valor: movMes },
+    {
+      titulo: "Total de produtos",
+      valor: totalProdutos,
+      icon: Package,
+      color: "text-primary",
+      bg: "bg-primary/10",
+    },
+    {
+      titulo: "Itens em estoque",
+      valor: valorEstoque,
+      icon: BarChart3,
+      color: "text-primary",
+      bg: "bg-primary/10",
+    },
+    {
+      titulo: "Abaixo do mínimo",
+      valor: abaixoMinimo,
+      icon: TrendingDown,
+      color: "text-destructive",
+      bg: "bg-destructive/10",
+    },
+    {
+      titulo: "Vencendo (≤30d)",
+      valor: proximosVencimento,
+      icon: Clock,
+      color: "text-warning",
+      bg: "bg-warning/10",
+    },
+    {
+      titulo: "Distribuições no mês",
+      valor: movMes,
+      icon: ArrowLeftRight,
+      color: "text-primary",
+      bg: "bg-primary/10",
+    },
   ];
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Painel Gerencial</h1>
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+    <div className="space-y-8">
+      <div>
+        <h1 className="page-title">Painel Gerencial</h1>
+        <p className="page-subtitle">Visão geral do estoque da Secretaria Municipal de Saúde</p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {cards.map((c) => (
-          <div key={c.titulo} className="card">
-            <p className="text-xs text-foreground/60">{c.titulo}</p>
-            <p
-              className={`mt-2 text-2xl font-bold ${
-                c.danger ? "text-danger" : c.warning ? "text-warning" : ""
-              }`}
-            >
-              {c.valor}
-            </p>
+          <div
+            key={c.titulo}
+            className="rounded-xl border border-border bg-white p-5 shadow-sm ring-1 ring-foreground/5 transition-all hover:shadow-md"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                {c.titulo}
+              </span>
+              <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${c.bg}`}>
+                <c.icon className={`h-4 w-4 ${c.color}`} />
+              </div>
+            </div>
+            <p className={`text-3xl font-bold ${c.color}`}>{c.valor}</p>
           </div>
         ))}
       </div>
@@ -62,13 +110,22 @@ export default async function DashboardPage() {
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <Link className="btn btn-primary" href="/requisicoes">
+        <Link
+          className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+          href="/requisicoes"
+        >
           Nova requisição
         </Link>
-        <Link className="btn btn-secondary" href="/estoque">
+        <Link
+          className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-white px-4 py-2 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+          href="/estoque"
+        >
           Registrar movimentação
         </Link>
-        <Link className="btn btn-secondary" href="/relatorios">
+        <Link
+          className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-white px-4 py-2 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+          href="/relatorios"
+        >
           Ver relatórios
         </Link>
       </div>
@@ -86,17 +143,32 @@ function ConsumoPorCategoria({ saldos }: { saldos: { produto: { categoria: strin
   for (const s of saldos) {
     map.set(s.produto.categoria, (map.get(s.produto.categoria) ?? 0) + 1);
   }
+  const entries = Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+  const max = Math.max(...entries.map((e) => e[1]), 1);
+
   return (
-    <div className="card">
-      <h3 className="mb-2 font-medium">Produtos por categoria</h3>
-      <ul className="space-y-1 text-sm">
-        {Array.from(map.entries()).map(([cat, qtd]) => (
-          <li key={cat} className="flex justify-between">
-            <span>{cat}</span>
-            <span className="font-medium">{qtd}</span>
-          </li>
-        ))}
-      </ul>
+    <div className="rounded-xl border border-border bg-white p-5 shadow-sm ring-1 ring-foreground/5">
+      <h3 className="mb-4 text-sm font-semibold text-foreground">Produtos por categoria</h3>
+      {entries.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Nenhuma categoria encontrada.</p>
+      ) : (
+        <ul className="space-y-3">
+          {entries.map(([cat, qtd]) => (
+            <li key={cat} className="space-y-1">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-foreground">{cat}</span>
+                <span className="font-medium text-foreground">{qtd}</span>
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-primary transition-all"
+                  style={{ width: `${(qtd / max) * 100}%` }}
+                />
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -113,20 +185,36 @@ function ProximosVencimento({
     })
     .slice(0, 8);
   return (
-    <div className="card">
-      <h3 className="mb-2 font-medium">Próximos do vencimento</h3>
+    <div className="rounded-xl border border-border bg-white p-5 shadow-sm ring-1 ring-foreground/5">
+      <h3 className="mb-4 text-sm font-semibold text-foreground">Próximos do vencimento</h3>
       {items.length === 0 ? (
-        <p className="text-sm text-foreground/60">Nenhum lote crítico.</p>
+        <p className="text-sm text-muted-foreground">Nenhum lote crítico.</p>
       ) : (
-        <ul className="space-y-1 text-sm">
-          {items.map((l) => (
-            <li key={l.numeroLote} className="flex justify-between">
-              <span>
-                {l.produto.descricao} ({l.numeroLote})
-              </span>
-              <span className="text-warning">{diasParaVencer(l.dataValidade)}d</span>
-            </li>
-          ))}
+        <ul className="space-y-2">
+          {items.map((l) => {
+            const dias = diasParaVencer(l.dataValidade);
+            const isCritico = dias <= 15;
+            return (
+              <li
+                key={l.numeroLote}
+                className="flex items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors hover:bg-muted/50"
+              >
+                <span className="truncate text-foreground">
+                  {l.produto.descricao}
+                  <span className="ml-1 text-xs text-muted-foreground">({l.numeroLote})</span>
+                </span>
+                <span
+                  className={`ml-2 shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
+                    isCritico
+                      ? "bg-destructive/10 text-destructive"
+                      : "bg-warning/10 text-warning"
+                  }`}
+                >
+                  {dias}d
+                </span>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

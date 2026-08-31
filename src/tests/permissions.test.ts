@@ -29,4 +29,11 @@ describe("RBAC por perfil", () => {
   it("perfil desconhecido não tem permissões", () => {
     expect(permissoesDoPerfil("ADMINISTRADOR").length).toBeGreaterThan(0);
   });
+
+  it("owner (Secretaria de TI) tem controle pleno", () => {
+    expect(temPermissao("OWNER", "usuario:gerenciar")).toBe(true);
+    expect(temPermissao("OWNER", "auditoria:ver")).toBe(true);
+    expect(temPermissao("OWNER", "unidade:gerenciar")).toBe(true);
+    expect(permissoesDoPerfil("OWNER")).toEqual(permissoesDoPerfil("ADMINISTRADOR"));
+  });
 });

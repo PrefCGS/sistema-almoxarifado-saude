@@ -16,14 +16,17 @@ export async function criarUsuario(prisma: PrismaClient, input: UsuarioInput) {
     },
   });
 
-  const usuario = await prisma.usuario.create({
+  const { senha, ...dados } = input;
+  void senha;
+
+  const usuario = await prisma.usuario.update({
+    where: { authUserId: created.user.id },
     data: {
-      authUserId: created.user.id,
-      nome: input.nome,
-      email: input.email,
-      perfil: input.perfil,
-      unidadeId: input.unidadeId ?? null,
-      ativo: input.ativo,
+      nome: dados.nome,
+      email: dados.email,
+      perfil: dados.perfil,
+      unidadeId: dados.unidadeId ?? null,
+      ativo: dados.ativo,
     },
   });
 

@@ -6,10 +6,10 @@ type Transicao = {
   perfis: PerfilUsuario[];
 };
 
-const ADMIN: PerfilUsuario[] = ["ADMINISTRADOR"];
-const GESTAO: PerfilUsuario[] = ["ADMINISTRADOR", "GESTOR_SAUDE"];
-const ALMOX: PerfilUsuario[] = ["ADMINISTRADOR", "ALMOXARIFE"];
-const GESTAO_ALMOX: PerfilUsuario[] = ["ADMINISTRADOR", "GESTOR_SAUDE", "ALMOXARIFE"];
+const ADMIN: PerfilUsuario[] = ["OWNER", "ADMINISTRADOR"];
+const GESTAO: PerfilUsuario[] = ["OWNER", "ADMINISTRADOR", "GESTOR_SAUDE"];
+const ALMOX: PerfilUsuario[] = ["OWNER", "ADMINISTRADOR", "ALMOXARIFE"];
+const GESTAO_ALMOX: PerfilUsuario[] = ["OWNER", "ADMINISTRADOR", "GESTOR_SAUDE", "ALMOXARIFE"];
 
 export const MAQUINA_REQUISICAO: Transicao[] = [
   { de: "ABERTA", para: ["EM_ANALISE", "CANCELADA"], perfis: GESTAO_ALMOX },
