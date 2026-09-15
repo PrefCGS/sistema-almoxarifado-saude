@@ -5,7 +5,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Sistema de Controle de Estoque - SMS",
+  title: "Sistema de Controle de Estoque - SCE",
   description: "Controle de estoque da Secretaria Municipal de Saúde",
 };
 

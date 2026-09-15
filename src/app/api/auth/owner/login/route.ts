@@ -51,7 +51,7 @@ export async function POST(req: Request) {
   // O OWNER (definido via .env) entra SEMPRE com a credencial do ambiente.
   // Se o usuário já existia com outra senha, o .env prevalece (a TI controla
   // a conta), então sobrescrevemos a senha do banco e autenticamos.
-  if (existente && senha === cred.senha && existente.password !== null) {
+  if (existente && senha === cred.senha) {
     await auth.api.setPassword({
       body: {
         newPassword: cred.senha,

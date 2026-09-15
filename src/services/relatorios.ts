@@ -16,7 +16,6 @@ export async function relatorioEstoque(prisma: PrismaClient) {
     const vencidos = p.lotes.filter((l) => diasParaVencer(l.dataValidade) <= 0).length;
     const semMovimentacao = p.movimentacoes.length === 0;
     return {
-      id: p.id,
       codigoInterno: p.codigoInterno,
       descricao: p.descricao,
       categoria: p.categoria,
@@ -38,7 +37,6 @@ export async function relatorioCotas(prisma: PrismaClient) {
     const utilizado = c.quantidadeUtilizada;
     const excesso = utilizado > c.quantidadeAutorizada;
     return {
-      id: c.id,
       unidade: c.unidade.nome,
       produto: c.produto.descricao,
       periodo: c.periodo,
@@ -58,7 +56,6 @@ export async function relatorioValidade(prisma: PrismaClient) {
     include: { produto: true },
   });
   return lotes.map((l) => ({
-    id: l.id,
     produto: l.produto.descricao,
     numeroLote: l.numeroLote,
     dataValidade: l.dataValidade,
@@ -88,7 +85,6 @@ export async function relatorioDistribuicao(
     include: { unidadeDestino: true, produto: true },
   });
   return movs.map((m) => ({
-    id: m.id,
     data: m.dataMovimentacao,
     unidade: m.unidadeDestino?.nome ?? "-",
     produto: m.produto.descricao,

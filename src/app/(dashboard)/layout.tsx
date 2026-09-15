@@ -1,4 +1,5 @@
 import Sidebar from "@/components/sidebar";
+import Topbar from "@/components/topbar";
 import { auth } from "@/lib/auth";
 import { getUsuarioAtual } from "@/lib/current-user";
 import { LABEL_PERFIL } from "@/lib/permissions";
@@ -26,18 +27,17 @@ export default async function DashboardLayout({
   };
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="min-h-screen bg-background">
       <Sidebar user={user} />
-      <div className="flex-1 md:ml-64">
-        <header className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-white/80 backdrop-blur-sm px-6 py-3">
-          <h2 className="text-sm font-medium text-muted-foreground">
-            Sistema de Controle de Estoque
-          </h2>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-foreground">{user.nome}</span>
-          </div>
-        </header>
-        <main className="p-6">{children}</main>
+      <div className="flex min-h-screen flex-col lg:pl-64">
+        <Topbar user={user} />
+        <main className="flex-1 px-6 py-6">
+          <div className="mx-auto w-full max-w-[1400px]">{children}</div>
+        </main>
+        <footer className="flex shrink-0 items-center justify-between border-t border-slate-200 bg-card px-6 py-2 text-[11px] text-slate-400">
+          <span>Estoque SCE · v1.0.0</span>
+          <span>Secretaria Municipal da Saúde da Prefeitura Municipal de Campina Grande do Sul</span>
+        </footer>
       </div>
     </div>
   );

@@ -1,9 +1,25 @@
 "use client";
 
 import { apiGet, apiPost } from "@/lib/api-client";
-import { transicoesPermitidas } from "@/services/requisicoes";
+import PageHeader from "@/components/page-header";
+import Panel from "@/components/panel";
+import StatusPill from "@/components/status-pill";
+import TableCard from "@/components/table-card";
+import {
+  btnDestructiveSm,
+  btnPrimary,
+  btnPrimarySm,
+  btnSecondary,
+  inputClass,
+  rowClass,
+  selectClass,
+  tdClass,
+  thClass,
+  theadRowClass,
+} from "@/lib/ui";
+import { ClipboardList, Minus, Plus, Send } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Plus, Minus, Send } from "lucide-react";
+import { transicoesPermitidas } from "@/services/requisicoes";
 
 type Req = {
   id: string;
@@ -21,22 +37,20 @@ type Prod = { id: string; descricao: string };
 type Unid = { id: string; nome: string };
 type Me = { perfil: string; unidadeId: string | null };
 
-const inputClass =
-  "flex h-10 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm transition-colors placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50";
-
-function statusBadge(status: string) {
-  const styles: Record<string, string> = {
-    ENTREGUE: "bg-primary/10 text-primary",
-    CANCELADA: "bg-destructive/10 text-destructive",
-    PENDENTE: "bg-warning/10 text-warning",
-    APROVADA: "bg-primary/10 text-primary",
-    REJEITADA: "bg-destructive/10 text-destructive",
-  };
-  return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${styles[status] ?? "bg-muted text-muted-foreground"}`}>
-      {status.replaceAll("_", " ")}
-    </span>
-  );
+function statusTone(status: string) {
+  switch (status) {
+    case "ENTREGUE":
+      return "success" as const;
+    case "APROVADA":
+      return "primary" as const;
+    case "PENDENTE":
+      return "warning" as const;
+    case "CANCELADA":
+    case "REJEITADA":
+      return "destructive" as const;
+    default:
+      return "neutral" as const;
+  }
 }
 
 export default function RequisicoesPage() {
@@ -114,118 +128,164 @@ export default function RequisicoesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="page-title">Requisições</h1>
-        <p className="page-subtitle">Solicitações de produtos entre unidades e almoxarifado</p>
-      </div>
+      <PageHeader
+        icon={ClipboardList}
+        title="Requisições"
+        description="Solicitações de produtos entre unidades e almoxarifado"
+      />
+
       {erro && (
-        <div className="rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">{erro}</div>
+        <div className="animate-fade-in rounded-md border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm font-medium text-destructive">
+          {erro}
+        </div>
       )}
 
-      <div className="rounded-xl border border-border bg-white p-5 shadow-sm ring-1 ring-foreground/5">
-        <h2 className="mb-4 text-sm font-semibold text-foreground">Nova requisição</h2>
+      <Panel title="Nova requisição" icon={Plus}>
         <form onSubmit={criar} className="space-y-3">
-          <select className={inputClass + " cursor-pointer"} value={unidadeId} onChange={(e) => setUnidadeId(e.target.value)} required>
+          <select
+            className={selectClass}
+            value={unidadeId}
+            onChange={(e) => setUnidadeId(e.target.value)}
+            required
+          >
             {unidades.map((u) => (
-              <option key={u.id} value={u.id}>{u.nome}</option>
+              <option key={u.id} value={u.id}>
+                {u.nome}
+              </option>
             ))}
           </select>
-          {itens.map((it, i) => (
-            <div key={i} className="flex gap-2">
-              <select className={inputClass + " cursor-pointer flex-1"} value={it.produtoId} onChange={(e) => updItem(i, { produtoId: e.target.value })} required>
-                <option value="">Produto...</option>
-                {produtos.map((p) => (
-                  <option key={p.id} value={p.id}>{p.descricao}</option>
-                ))}
-              </select>
-              <input className={inputClass + " w-28"} type="number" value={it.quantidadeSolicitada} onChange={(e) => updItem(i, { quantidadeSolicitada: Number(e.target.value) })} />
-              <button type="button" className="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-white px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground" onClick={() => rmItem(i)}>
-                <Minus className="h-4 w-4" />
-              </button>
-            </div>
-          ))}
-          <div className="flex gap-2">
-            <button type="button" className="inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-white px-4 py-2 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground" onClick={addItem}>
-              <Plus className="h-4 w-4" />
+          <div className="space-y-2 rounded-md border border-slate-200 bg-slate-50/60 p-3">
+            {itens.map((it, i) => (
+              <div key={i} className="flex gap-2">
+                <select
+                  className={`${selectClass} flex-1`}
+                  value={it.produtoId}
+                  onChange={(e) => updItem(i, { produtoId: e.target.value })}
+                  required
+                >
+                  <option value="">Produto...</option>
+                  {produtos.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.descricao}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  className={`${inputClass} w-28`}
+                  type="number"
+                  value={it.quantidadeSolicitada}
+                  onChange={(e) =>
+                    updItem(i, { quantidadeSolicitada: Number(e.target.value) })
+                  }
+                />
+                <button
+                  type="button"
+                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border/80 bg-card text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => rmItem(i)}
+                >
+                  <Minus className="size-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className={btnSecondary} onClick={addItem}>
+              <Plus className="size-4" />
               Item
             </button>
-            <button className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:pointer-events-none disabled:opacity-50" type="submit">
-              <Send className="h-4 w-4" />
+            <button className={btnPrimary} type="submit">
+              <Send className="size-4" />
               Enviar requisição
             </button>
           </div>
         </form>
-      </div>
+      </Panel>
 
-      <div className="rounded-xl border border-border bg-white shadow-sm ring-1 ring-foreground/5">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Número</th>
-                <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Unidade</th>
-                <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
-                <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Itens</th>
-                <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {lista.map((r) => {
-                const trans = me ? transicoesPermitidas(r.status as never, perfil) : [];
-                const podeExcecao =
-                  perfil === "GESTOR_SAUDE" || perfil === "ADMINISTRADOR" || perfil === "OWNER";
-                return (
-                  <tr key={r.id} className="border-b border-border transition-colors hover:bg-muted/50 last:border-0 align-top">
-                    <td className="px-5 py-3 font-semibold text-primary">{r.numero}</td>
-                    <td className="px-5 py-3 text-foreground">{r.unidade.nome}</td>
-                    <td className="px-5 py-3">{statusBadge(r.status)}</td>
-                    <td className="px-5 py-3 text-muted-foreground">
-                      <div className="space-y-0.5">
-                        {r.itens.map((it, i) => (
-                          <div key={i} className="text-xs">
-                            {it.produto.descricao}: <span className="font-medium text-foreground">{it.quantidadeSolicitada}</span>
-                            {it.quantidadeAprovada != null ? <span className="text-primary"> (aprov: {it.quantidadeAprovada})</span> : ""}
-                          </div>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-5 py-3">
-                      <div className="flex flex-wrap gap-1">
-                        {trans.map((t) => (
-                          <button
-                            key={t}
-                            className="inline-flex h-8 items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90"
-                            type="button"
-                            onClick={() => transicionar(r.id, t)}
-                          >
-                            {t.replaceAll("_", " ")}
-                          </button>
-                        ))}
-                        {trans.includes("APROVADA") && podeExcecao && (
-                          <button
-                            className="inline-flex h-8 items-center gap-1 rounded-lg bg-destructive/10 px-3 py-1.5 text-xs font-medium text-destructive transition-all hover:bg-destructive/20"
-                            type="button"
-                            onClick={() => transicionar(r.id, "APROVADA", true)}
-                          >
-                            Exceção
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-              {lista.length === 0 && (
-                <tr>
-                  <td className="px-5 py-8 text-center text-sm text-muted-foreground" colSpan={5}>
-                    Nenhuma requisição.
+      <TableCard
+        count={lista.length}
+        countLabel="requisição(ões)"
+        emptyMessage="Nenhuma requisição."
+      >
+        <table className="w-full text-sm">
+          <thead>
+            <tr className={theadRowClass}>
+              <th className={thClass}>Número</th>
+              <th className={thClass}>Unidade</th>
+              <th className={thClass}>Status</th>
+              <th className={thClass}>Itens</th>
+              <th className={thClass}>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {lista.map((r) => {
+              const trans = me ? transicoesPermitidas(r.status as never, perfil) : [];
+              const podeExcecao =
+                perfil === "GESTOR_SAUDE" || perfil === "ADMINISTRADOR" || perfil === "OWNER";
+              return (
+                <tr key={r.id} className={`${rowClass} align-top`}>
+                  <td className={`${tdClass} font-semibold text-primary`}>{r.numero}</td>
+                  <td className={`${tdClass} text-foreground`}>{r.unidade.nome}</td>
+                  <td className={tdClass}>
+                    <StatusPill tone={statusTone(r.status)}>
+                      {r.status.replaceAll("_", " ")}
+                    </StatusPill>
+                  </td>
+                  <td className={`${tdClass} text-muted-foreground`}>
+                    <ul className="space-y-1">
+                      {r.itens.map((it, i) => (
+                        <li
+                          key={i}
+                          className="flex items-center gap-1.5 rounded-md bg-muted/40 px-2 py-1 text-xs"
+                        >
+                          <span className="truncate">{it.produto.descricao}:</span>
+                          <span className="font-semibold text-foreground tabular-nums">
+                            {it.quantidadeSolicitada}
+                          </span>
+                          {it.quantidadeAprovada != null && (
+                            <span className="ml-auto rounded-[3px] bg-primary/10 px-1.5 py-0.5 font-semibold text-primary">
+                              aprov: {it.quantidadeAprovada}
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </td>
+                  <td className={tdClass}>
+                    <div className="flex flex-wrap gap-1">
+                      {trans.map((t) => (
+                        <button
+                          key={t}
+                          className={btnPrimarySm}
+                          type="button"
+                          onClick={() => transicionar(r.id, t)}
+                        >
+                          {t.replaceAll("_", " ")}
+                        </button>
+                      ))}
+                      {trans.includes("APROVADA") && podeExcecao && (
+                        <button
+                          className={btnDestructiveSm}
+                          type="button"
+                          onClick={() => transicionar(r.id, "APROVADA", true)}
+                        >
+                          Exceção
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+              );
+            })}
+            {lista.length === 0 && (
+              <tr>
+                <td className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={5}>
+                  Nenhuma requisição.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </TableCard>
     </div>
   );
 }

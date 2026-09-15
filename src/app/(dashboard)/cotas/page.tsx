@@ -1,8 +1,21 @@
 "use client";
 
 import { apiGet, apiPost } from "@/lib/api-client";
+import PageHeader from "@/components/page-header";
+import ExpandableFormCard from "@/components/expandable-form-card";
+import StatusPill from "@/components/status-pill";
+import TableCard from "@/components/table-card";
+import {
+  btnPrimary,
+  inputClass,
+  rowClass,
+  selectClass,
+  tdClass,
+  thClass,
+  theadRowClass,
+} from "@/lib/ui";
+import { BarChart3, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Plus } from "lucide-react";
 
 type Opt = { id: string; label: string };
 type Cota = {
@@ -12,9 +25,6 @@ type Cota = {
   quantidadeAutorizada: number;
   periodo: string;
 };
-
-const inputClass =
-  "flex h-10 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm transition-colors placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50";
 
 export default function CotasPage() {
   const [cotas, setCotas] = useState<Cota[]>([]);
@@ -65,83 +75,128 @@ export default function CotasPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="page-title">Cotas por Unidade</h1>
-        <p className="page-subtitle">Limites de distribuição de produtos por unidade</p>
-      </div>
+      <PageHeader
+        icon={BarChart3}
+        title="Cotas por Unidade"
+        description="Limites de distribuição de produtos por unidade"
+      />
+
       {erro && (
-        <div className="rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">{erro}</div>
+        <div className="animate-fade-in rounded-md border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm font-medium text-destructive">
+          {erro}
+        </div>
       )}
 
-      <div className="rounded-xl border border-border bg-white p-5 shadow-sm ring-1 ring-foreground/5">
-        <h2 className="mb-4 text-sm font-semibold text-foreground">Nova cota</h2>
-        <form onSubmit={salvar} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <select className={inputClass + " cursor-pointer"} value={form.unidadeId} onChange={(e) => setForm({ ...form, unidadeId: e.target.value })} required>
+      <ExpandableFormCard title="Nova cota" icon={BarChart3}>
+        <form
+          onSubmit={salvar}
+          className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+        >
+          <select
+            className={selectClass}
+            value={form.unidadeId}
+            onChange={(e) => setForm({ ...form, unidadeId: e.target.value })}
+            required
+          >
             <option value="">Unidade...</option>
             {unidades.map((o) => (
-              <option key={o.id} value={o.id}>{o.label}</option>
+              <option key={o.id} value={o.id}>
+                {o.label}
+              </option>
             ))}
           </select>
-          <select className={inputClass + " cursor-pointer"} value={form.produtoId} onChange={(e) => setForm({ ...form, produtoId: e.target.value })} required>
+          <select
+            className={selectClass}
+            value={form.produtoId}
+            onChange={(e) => setForm({ ...form, produtoId: e.target.value })}
+            required
+          >
             <option value="">Produto...</option>
             {produtos.map((o) => (
-              <option key={o.id} value={o.id}>{o.label}</option>
+              <option key={o.id} value={o.id}>
+                {o.label}
+              </option>
             ))}
           </select>
-          <input className={inputClass} type="number" placeholder="Qtd autorizada" value={form.quantidadeAutorizada} onChange={(e) => setForm({ ...form, quantidadeAutorizada: Number(e.target.value) })} required />
-          <select className={inputClass + " cursor-pointer"} value={form.periodo} onChange={(e) => setForm({ ...form, periodo: e.target.value })}>
+          <input
+            className={inputClass}
+            type="number"
+            placeholder="Qtd autorizada"
+            value={form.quantidadeAutorizada}
+            onChange={(e) => setForm({ ...form, quantidadeAutorizada: Number(e.target.value) })}
+            required
+          />
+          <select
+            className={selectClass}
+            value={form.periodo}
+            onChange={(e) => setForm({ ...form, periodo: e.target.value })}
+          >
             {["MENSAL", "TRIMESTRAL", "SEMESTRAL", "ANUAL"].map((p) => (
-              <option key={p} value={p}>{p.charAt(0) + p.slice(1).toLowerCase()}</option>
+              <option key={p} value={p}>
+                {p.charAt(0) + p.slice(1).toLowerCase()}
+              </option>
             ))}
           </select>
-          <input className={inputClass} type="date" value={form.dataInicio} onChange={(e) => setForm({ ...form, dataInicio: e.target.value })} required />
-          <input className={inputClass} type="date" value={form.dataTermino} onChange={(e) => setForm({ ...form, dataTermino: e.target.value })} required />
-          <button className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:pointer-events-none disabled:opacity-50" type="submit">
-            <Plus className="h-4 w-4" />
+          <input
+            className={inputClass}
+            type="date"
+            value={form.dataInicio}
+            onChange={(e) => setForm({ ...form, dataInicio: e.target.value })}
+            required
+          />
+          <input
+            className={inputClass}
+            type="date"
+            value={form.dataTermino}
+            onChange={(e) => setForm({ ...form, dataTermino: e.target.value })}
+            required
+          />
+          <button className={btnPrimary} type="submit">
+            <Plus className="size-4" />
             Salvar
           </button>
         </form>
-      </div>
+      </ExpandableFormCard>
 
-      <div className="rounded-xl border border-border bg-white shadow-sm ring-1 ring-foreground/5">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Unidade</th>
-                <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Produto</th>
-                <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Autorizada</th>
-                <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Período</th>
+      <TableCard
+        count={cotas.length}
+        countLabel="cota(s)"
+        emptyMessage="Nenhuma cota cadastrada."
+      >
+        <table className="w-full text-sm">
+          <thead>
+            <tr className={theadRowClass}>
+              <th className={thClass}>Unidade</th>
+              <th className={thClass}>Produto</th>
+              <th className={thClass}>Autorizada</th>
+              <th className={thClass}>Período</th>
+            </tr>
+          </thead>
+          <tbody>
+            {cotas.map((c) => (
+              <tr key={c.id} className={rowClass}>
+                <td className={`${tdClass} text-foreground`}>{c.unidade.nome}</td>
+                <td className={`${tdClass} text-foreground`}>{c.produto.descricao}</td>
+                <td className={tdClass}>
+                  <StatusPill tone="primary">{c.quantidadeAutorizada}</StatusPill>
+                </td>
+                <td className={tdClass}>
+                  <StatusPill tone="secondary">
+                    {c.periodo.charAt(0) + c.periodo.slice(1).toLowerCase()}
+                  </StatusPill>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {cotas.map((c) => (
-                <tr key={c.id} className="border-b border-border transition-colors hover:bg-muted/50 last:border-0">
-                  <td className="px-5 py-3 text-foreground">{c.unidade.nome}</td>
-                  <td className="px-5 py-3 text-foreground">{c.produto.descricao}</td>
-                  <td className="px-5 py-3">
-                    <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
-                      {c.quantidadeAutorizada}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3">
-                    <span className="inline-flex items-center rounded-full bg-secondary/10 px-2.5 py-0.5 text-xs font-medium text-secondary-foreground">
-                      {c.periodo.charAt(0) + c.periodo.slice(1).toLowerCase()}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-              {cotas.length === 0 && (
-                <tr>
-                  <td className="px-5 py-8 text-center text-sm text-muted-foreground" colSpan={4}>
-                    Nenhuma cota cadastrada.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+            ))}
+            {cotas.length === 0 && (
+              <tr>
+                <td className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={4}>
+                  Nenhuma cota cadastrada.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </TableCard>
     </div>
   );
 }

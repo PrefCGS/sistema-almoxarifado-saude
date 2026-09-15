@@ -1,8 +1,24 @@
 "use client";
 
+import PageHeader from "@/components/page-header";
+import ExpandableFormCard from "@/components/expandable-form-card";
+import SearchBar from "@/components/search-bar";
+import StatusPill from "@/components/status-pill";
+import TableCard from "@/components/table-card";
 import { apiFetch, apiGet, apiPost } from "@/lib/api-client";
+import {
+  btnPrimary,
+  btnPrimarySm,
+  btnSecondarySm,
+  inputClass,
+  rowClass,
+  selectClass,
+  tdClass,
+  thClass,
+  theadRowClass,
+} from "@/lib/ui";
+import { Plus, UserCheck, UserX, Users } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Plus, UserCheck, UserX } from "lucide-react";
 
 type Usuario = {
   id: string;
@@ -21,12 +37,10 @@ const PERFIS: Record<string, string> = {
   RESPONSAVEL_UNIDADE: "Responsável de Unidade",
 };
 
-const inputClass =
-  "flex h-10 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm transition-colors placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50";
-
 export default function UsuariosPage() {
   const [lista, setLista] = useState<Usuario[]>([]);
   const [unidades, setUnidades] = useState<Unid[]>([]);
+  const [busca, setBusca] = useState("");
   const [form, setForm] = useState({
     nome: "",
     email: "",
@@ -77,103 +91,154 @@ export default function UsuariosPage() {
     }
   }
 
+  const filtrados = lista.filter(
+    (u) =>
+      u.nome.toLowerCase().includes(busca.toLowerCase()) ||
+      u.email.toLowerCase().includes(busca.toLowerCase()),
+  );
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="page-title">Usuários</h1>
-        <p className="page-subtitle">Gestão de acesso e aprovação de contas</p>
-      </div>
+      <PageHeader
+        codigo="Sistema · Usuários"
+        title="Usuários"
+        description="Gestão de acesso e aprovação de contas."
+      />
+
       {erro && (
-        <div className="rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">{erro}</div>
+        <div className="animate-fade-in rounded-md border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm font-medium text-destructive">
+          {erro}
+        </div>
       )}
 
-      <div className="rounded-xl border border-border bg-white p-5 shadow-sm ring-1 ring-foreground/5">
-        <h2 className="mb-4 text-sm font-semibold text-foreground">Novo usuário</h2>
+      <ExpandableFormCard title="Novo usuário" icon={Users}>
         <form onSubmit={salvar} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <input className={inputClass} placeholder="Nome" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required />
-          <input className={inputClass} type="email" placeholder="E-mail" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
-          <input className={inputClass} type="password" placeholder="Senha" value={form.senha} onChange={(e) => setForm({ ...form, senha: e.target.value })} required />
-          <select className={inputClass + " cursor-pointer"} value={form.perfil} onChange={(e) => setForm({ ...form, perfil: e.target.value })}>
+          <input
+            className={inputClass}
+            placeholder="Nome"
+            value={form.nome}
+            onChange={(e) => setForm({ ...form, nome: e.target.value })}
+            required
+          />
+          <input
+            className={inputClass}
+            type="email"
+            placeholder="E-mail"
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+            required
+          />
+          <input
+            className={inputClass}
+            type="password"
+            placeholder="Senha"
+            value={form.senha}
+            onChange={(e) => setForm({ ...form, senha: e.target.value })}
+            required
+          />
+          <select
+            className={selectClass}
+            value={form.perfil}
+            onChange={(e) => setForm({ ...form, perfil: e.target.value })}
+          >
             {Object.entries(PERFIS).map(([k, v]) => (
-              <option key={k} value={k}>{v}</option>
+              <option key={k} value={k}>
+                {v}
+              </option>
             ))}
           </select>
-          <select className={inputClass + " cursor-pointer"} value={form.unidadeId} onChange={(e) => setForm({ ...form, unidadeId: e.target.value })}>
+          <select
+            className={selectClass}
+            value={form.unidadeId}
+            onChange={(e) => setForm({ ...form, unidadeId: e.target.value })}
+          >
             <option value="">Unidade (opcional)</option>
             {unidades.map((u) => (
-              <option key={u.id} value={u.id}>{u.nome}</option>
+              <option key={u.id} value={u.id}>
+                {u.nome}
+              </option>
             ))}
           </select>
-          <button className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:pointer-events-none disabled:opacity-50" type="submit">
-            <Plus className="h-4 w-4" />
+          <button className={btnPrimary} type="submit">
+            <Plus className="size-4" />
             Criar
           </button>
         </form>
-      </div>
+      </ExpandableFormCard>
 
-      <div className="rounded-xl border border-border bg-white shadow-sm ring-1 ring-foreground/5">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Nome</th>
-                <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">E-mail</th>
-                <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Perfil</th>
-                <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Unidade</th>
-                <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Status</th>
-                <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Ações</th>
+      <TableCard
+        count={filtrados.length}
+        countLabel="usuário(s)"
+        emptyMessage="Nenhum usuário cadastrado."
+        search={
+          <SearchBar
+            placeholder="Buscar usuário..."
+            value={busca}
+            onChange={setBusca}
+          />
+        }
+      >
+        <table className="w-full text-sm">
+          <thead>
+            <tr className={theadRowClass}>
+              <th className={thClass}>Usuário</th>
+              <th className={thClass}>E-mail</th>
+              <th className={thClass}>Perfil</th>
+              <th className={thClass}>Unidade</th>
+              <th className={thClass}>Status</th>
+              <th className={thClass}>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtrados.map((u) => (
+              <tr key={u.id} className={rowClass}>
+                <td className={`${tdClass} font-medium text-slate-800`}>
+                  <span className="flex items-center gap-2">
+                    <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <Users className="size-4" strokeWidth={2} />
+                    </span>
+                    {u.nome}
+                  </span>
+                </td>
+                <td className={`${tdClass} text-muted-foreground`}>{u.email}</td>
+                <td className={tdClass}>
+                  <StatusPill tone="secondary">{PERFIS[u.perfil] ?? u.perfil}</StatusPill>
+                </td>
+                <td className={`${tdClass} text-muted-foreground`}>{u.unidade?.nome ?? "—"}</td>
+                <td className={tdClass}>
+                  <StatusPill tone={u.ativo ? "primary" : "warning"}>
+                    {u.ativo ? "Ativo" : "Aguardando"}
+                  </StatusPill>
+                </td>
+                <td className={tdClass}>
+                  {u.ativo ? (
+                    <button
+                      className={btnSecondarySm}
+                      type="button"
+                      onClick={() => alternarAtivo(u)}
+                    >
+                      <UserX className="size-3.5" />
+                      Desativar
+                    </button>
+                  ) : (
+                    <button className={btnPrimarySm} type="button" onClick={() => alternarAtivo(u)}>
+                      <UserCheck className="size-3.5" />
+                      Aprovar
+                    </button>
+                  )}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {lista.map((u) => (
-                <tr key={u.id} className="border-b border-border transition-colors hover:bg-muted/50 last:border-0">
-                  <td className="px-5 py-3 font-medium text-foreground">{u.nome}</td>
-                  <td className="px-5 py-3 text-muted-foreground">{u.email}</td>
-                  <td className="px-5 py-3">
-                    <span className="inline-flex items-center rounded-full bg-secondary/10 px-2.5 py-0.5 text-xs font-medium text-secondary-foreground">
-                      {PERFIS[u.perfil] ?? u.perfil}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3 text-muted-foreground">{u.unidade?.nome ?? "—"}</td>
-                  <td className="px-5 py-3">
-                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${u.ativo ? "bg-primary/10 text-primary" : "bg-warning/10 text-warning"}`}>
-                      {u.ativo ? "Ativo" : "Aguardando"}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3">
-                    {u.ativo ? (
-                      <button
-                        className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                        type="button"
-                        onClick={() => alternarAtivo(u)}
-                      >
-                        <UserX className="h-3.5 w-3.5" />
-                        Desativar
-                      </button>
-                    ) : (
-                      <button
-                        className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90"
-                        type="button"
-                        onClick={() => alternarAtivo(u)}
-                      >
-                        <UserCheck className="h-3.5 w-3.5" />
-                        Aprovar
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {lista.length === 0 && (
-                <tr>
-                  <td className="px-5 py-8 text-center text-sm text-muted-foreground" colSpan={6}>
-                    Nenhum usuário cadastrado.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+            ))}
+            {filtrados.length === 0 && (
+              <tr>
+                <td className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={6}>
+                  Nenhum usuário cadastrado.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </TableCard>
     </div>
   );
 }

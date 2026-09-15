@@ -1,8 +1,21 @@
 "use client";
 
 import { apiGet, apiPost } from "@/lib/api-client";
+import PageHeader from "@/components/page-header";
+import Panel from "@/components/panel";
+import StatusPill from "@/components/status-pill";
+import {
+  btnPrimary,
+  inputClass,
+  rowClass,
+  selectClass,
+  tdClass,
+  thClass,
+  thRight,
+  theadRowClass,
+} from "@/lib/ui";
+import { ArrowDown, ArrowLeftRight, ArrowUp, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
-import { ArrowDown, ArrowUp } from "lucide-react";
 
 type Saldo = {
   id: string;
@@ -30,8 +43,9 @@ const TIPOS: Record<string, { label: string; tipo: "entrada" | "saida" }> = {
   AJUSTE_INVENTARIO: { label: "Ajuste de Inventário", tipo: "entrada" },
 };
 
-const inputClass =
-  "flex h-10 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm transition-colors placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50";
+function movimentoTipo(tipo: string): "entrada" | "saida" {
+  return tipo.startsWith("ENTRADA") || tipo === "AJUSTE_INVENTARIO" ? "entrada" : "saida";
+}
 
 export default function EstoquePage() {
   const [saldos, setSaldos] = useState<Saldo[]>([]);
@@ -92,116 +106,170 @@ export default function EstoquePage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="page-title">Movimentação de Estoque</h1>
-        <p className="page-subtitle">Saldos e registros de entrada e saída de produtos</p>
-      </div>
+      <PageHeader
+        icon={ArrowLeftRight}
+        title="Movimentação de Estoque"
+        description="Saldos e registros de entrada e saída de produtos"
+      />
+
       {erro && (
-        <div className="rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">{erro}</div>
+        <div className="animate-fade-in rounded-md border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm font-medium text-destructive">
+          {erro}
+        </div>
       )}
 
-      <div className="rounded-xl border border-border bg-white p-5 shadow-sm ring-1 ring-foreground/5">
-        <h2 className="mb-4 text-sm font-semibold text-foreground">Registrar movimentação</h2>
-        <form onSubmit={salvar} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <select className={inputClass + " cursor-pointer"} value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value })}>
+      <Panel title="Registrar movimentação" icon={Plus}>
+        <form
+          onSubmit={salvar}
+          className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+        >
+          <select
+            className={selectClass}
+            value={form.tipo}
+            onChange={(e) => setForm({ ...form, tipo: e.target.value })}
+          >
             {Object.entries(TIPOS).map(([k, v]) => (
-              <option key={k} value={k}>{v.label}</option>
+              <option key={k} value={k}>
+                {v.label}
+              </option>
             ))}
           </select>
-          <select className={inputClass + " cursor-pointer"} value={form.produtoId} onChange={(e) => setForm({ ...form, produtoId: e.target.value })} required>
+          <select
+            className={selectClass}
+            value={form.produtoId}
+            onChange={(e) => setForm({ ...form, produtoId: e.target.value })}
+            required
+          >
             <option value="">Produto...</option>
             {produtos.map((p) => (
-              <option key={p.id} value={p.id}>{p.descricao}</option>
+              <option key={p.id} value={p.id}>
+                {p.descricao}
+              </option>
             ))}
           </select>
-          <input className={inputClass} type="number" placeholder="Quantidade" value={form.quantidade} onChange={(e) => setForm({ ...form, quantidade: Number(e.target.value) })} required />
+          <input
+            className={inputClass}
+            type="number"
+            placeholder="Quantidade"
+            value={form.quantidade}
+            onChange={(e) => setForm({ ...form, quantidade: Number(e.target.value) })}
+            required
+          />
           {isSaidaDist && (
-            <select className={inputClass + " cursor-pointer"} value={form.unidadeDestinoId} onChange={(e) => setForm({ ...form, unidadeDestinoId: e.target.value })} required>
+            <select
+              className={selectClass}
+              value={form.unidadeDestinoId}
+              onChange={(e) => setForm({ ...form, unidadeDestinoId: e.target.value })}
+              required
+            >
               <option value="">Unidade destino...</option>
               {unidades.map((u) => (
-                <option key={u.id} value={u.id}>{u.nome}</option>
+                <option key={u.id} value={u.id}>
+                  {u.nome}
+                </option>
               ))}
             </select>
           )}
-          <input className={inputClass} placeholder="Nota fiscal" value={form.numeroNotaFiscal} onChange={(e) => setForm({ ...form, numeroNotaFiscal: e.target.value })} />
-          <input className={inputClass} placeholder="Fornecedor" value={form.fornecedor} onChange={(e) => setForm({ ...form, fornecedor: e.target.value })} />
-          <input className={inputClass} placeholder="Observações" value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} />
-          <button className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:pointer-events-none disabled:opacity-50" type="submit">
+          <input
+            className={inputClass}
+            placeholder="Nota fiscal"
+            value={form.numeroNotaFiscal}
+            onChange={(e) => setForm({ ...form, numeroNotaFiscal: e.target.value })}
+          />
+          <input
+            className={inputClass}
+            placeholder="Fornecedor"
+            value={form.fornecedor}
+            onChange={(e) => setForm({ ...form, fornecedor: e.target.value })}
+          />
+          <input
+            className={inputClass}
+            placeholder="Observações"
+            value={form.observacoes}
+            onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
+          />
+          <button className={btnPrimary} type="submit">
             Registrar
           </button>
         </form>
-      </div>
+      </Panel>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <div className="rounded-xl border border-border bg-white shadow-sm ring-1 ring-foreground/5">
-          <div className="border-b border-border px-5 py-3">
-            <h2 className="text-sm font-semibold text-foreground">Saldos</h2>
-          </div>
+        <Panel title="Saldos" icon={ArrowDown} flush>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border">
-                  <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Produto</th>
-                  <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Unidade</th>
-                  <th className="px-5 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">Qtd</th>
+                <tr className={theadRowClass}>
+                  <th className={thClass}>Produto</th>
+                  <th className={thClass}>Unidade</th>
+                  <th className={`${thClass} ${thRight}`}>Qtd</th>
                 </tr>
               </thead>
               <tbody>
                 {saldos.map((s) => (
-                  <tr key={s.id} className="border-b border-border transition-colors hover:bg-muted/50 last:border-0">
-                    <td className="px-5 py-3 text-foreground">{s.produto.descricao}</td>
-                    <td className="px-5 py-3 text-muted-foreground">{s.unidade.nome}</td>
-                    <td className="px-5 py-3 text-right font-semibold text-primary">{s.quantidade}</td>
+                  <tr key={s.id} className={rowClass}>
+                    <td className={`${tdClass} text-foreground`}>{s.produto.descricao}</td>
+                    <td className={`${tdClass} text-muted-foreground`}>{s.unidade.nome}</td>
+                    <td className={`${tdClass} text-right font-semibold text-primary tabular-nums`}>
+                      {s.quantidade}
+                    </td>
                   </tr>
                 ))}
                 {saldos.length === 0 && (
                   <tr>
-                    <td className="px-5 py-8 text-center text-sm text-muted-foreground" colSpan={3}>Sem saldos.</td>
+                    <td className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={3}>
+                      Sem saldos.
+                    </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
-        </div>
+        </Panel>
 
-        <div className="rounded-xl border border-border bg-white shadow-sm ring-1 ring-foreground/5">
-          <div className="border-b border-border px-5 py-3">
-            <h2 className="text-sm font-semibold text-foreground">Últimas movimentações</h2>
-          </div>
+        <Panel title="Últimas movimentações" icon={ArrowUp} flush>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border">
-                  <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Tipo</th>
-                  <th className="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Produto</th>
-                  <th className="px-5 py-3 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground">Qtd</th>
+                <tr className={theadRowClass}>
+                  <th className={thClass}>Tipo</th>
+                  <th className={thClass}>Produto</th>
+                  <th className={`${thClass} ${thRight}`}>Qtd</th>
                 </tr>
               </thead>
               <tbody>
                 {movs.slice(0, 15).map((m) => {
-                  const isEntrada = m.tipo.startsWith("ENTRADA") || m.tipo === "AJUSTE_INVENTARIO";
+                  const isEntrada = movimentoTipo(m.tipo) === "entrada";
                   return (
-                    <tr key={m.id} className="border-b border-border transition-colors hover:bg-muted/50 last:border-0">
-                      <td className="px-5 py-3">
-                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${isEntrada ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}`}>
-                          {isEntrada ? <ArrowDown className="h-3 w-3" /> : <ArrowUp className="h-3 w-3" />}
+                    <tr key={m.id} className={rowClass}>
+                      <td className={tdClass}>
+                        <StatusPill tone={isEntrada ? "primary" : "destructive"}>
+                          {isEntrada ? (
+                            <ArrowDown className="size-3" />
+                          ) : (
+                            <ArrowUp className="size-3" />
+                          )}
                           {TIPOS[m.tipo]?.label ?? m.tipo}
-                        </span>
+                        </StatusPill>
                       </td>
-                      <td className="px-5 py-3 text-foreground">{m.produto.descricao}</td>
-                      <td className="px-5 py-3 text-right font-medium text-foreground">{m.quantidade}</td>
+                      <td className={`${tdClass} text-foreground`}>{m.produto.descricao}</td>
+                      <td className={`${tdClass} text-right font-medium tabular-nums`}>
+                        {m.quantidade}
+                      </td>
                     </tr>
                   );
                 })}
                 {movs.length === 0 && (
                   <tr>
-                    <td className="px-5 py-8 text-center text-sm text-muted-foreground" colSpan={3}>Sem movimentações.</td>
+                    <td className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={3}>
+                      Sem movimentações.
+                    </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
-        </div>
+        </Panel>
       </div>
     </div>
   );

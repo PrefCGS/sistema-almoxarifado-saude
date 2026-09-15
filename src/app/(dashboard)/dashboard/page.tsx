@@ -1,19 +1,14 @@
+import PageHeader from "@/components/page-header";
+import Panel from "@/components/panel";
+import StatusPill from "@/components/status-pill";
 import { prisma } from "@/lib/prisma";
+import { btnSecondary, numClass } from "@/lib/ui";
 import { diasParaVencer } from "@/lib/utils";
+import { AlertTriangle, ArrowLeftRight, BarChart3, Clock, Package, TrendingUp } from "lucide-react";
 import Link from "next/link";
-import {
-  Package,
-  BarChart3,
-  AlertTriangle,
-  Clock,
-  ArrowLeftRight,
-  ChevronRight,
-  TrendingUp,
-  TrendingDown,
-} from "lucide-react";
 
 export default async function DashboardPage() {
-  const [totalProdutos, saldos, lotes, movMes, porCategoria] = await Promise.all([
+  const [totalProdutos, saldos, lotes, movMes] = await Promise.all([
     prisma.produto.count({ where: { situacao: "ATIVO" } }),
     prisma.saldoEstoque.findMany({ include: { produto: true } }),
     prisma.lote.findMany({ include: { produto: true } }),
@@ -22,10 +17,6 @@ export default async function DashboardPage() {
         tipo: "SAIDA_DISTRIBUICAO",
         dataMovimentacao: { gte: inicioDoMes() },
       },
-    }),
-    prisma.saldoEstoque.groupBy({
-      by: ["produtoId"],
-      _sum: { quantidade: true },
     }),
   ]);
 
@@ -42,64 +33,69 @@ export default async function DashboardPage() {
 
   const cards = [
     {
-      titulo: "Total de produtos",
+      titulo: "Produtos ativos",
       valor: totalProdutos,
       icon: Package,
-      color: "text-primary",
-      bg: "bg-primary/10",
+      tile: "border-primary/20 text-primary bg-primary/5",
     },
     {
       titulo: "Itens em estoque",
       valor: valorEstoque,
       icon: BarChart3,
-      color: "text-primary",
-      bg: "bg-primary/10",
+      tile: "border-primary/20 text-primary bg-primary/5",
     },
     {
       titulo: "Abaixo do mínimo",
       valor: abaixoMinimo,
-      icon: TrendingDown,
-      color: "text-destructive",
-      bg: "bg-destructive/10",
+      icon: AlertTriangle,
+      tile: "border-warning/40 text-warning bg-warning/5",
     },
     {
       titulo: "Vencendo (≤30d)",
       valor: proximosVencimento,
       icon: Clock,
-      color: "text-warning",
-      bg: "bg-warning/10",
+      tile: "border-destructive/30 text-destructive bg-destructive/5",
     },
     {
       titulo: "Distribuições no mês",
       valor: movMes,
       icon: ArrowLeftRight,
-      color: "text-primary",
-      bg: "bg-primary/10",
+      tile: "border-primary/20 text-primary bg-primary/5",
     },
   ];
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="page-title">Painel Gerencial</h1>
-        <p className="page-subtitle">Visão geral do estoque da Secretaria Municipal de Saúde</p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        codigo="Sistema de Controle de Estoque · SCE"
+        title="Painel Gerencial"
+        description="Visão geral dos saldos, vencimentos e distribuições da secretaria."
+      >
+        <Link className={btnSecondary} href="/estoque">
+          Registrar movimentação
+        </Link>
+        <Link className={btnSecondary} href="/relatorios">
+          Ver relatórios
+        </Link>
+      </PageHeader>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {cards.map((c) => (
           <div
             key={c.titulo}
-            className="rounded-xl border border-border bg-white p-5 shadow-sm ring-1 ring-foreground/5 transition-all hover:shadow-md"
+            className="group flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-card px-4 py-4 shadow-sm transition-all hover:border-primary/30 hover:shadow-md"
           >
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                 {c.titulo}
-              </span>
-              <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${c.bg}`}>
-                <c.icon className={`h-4 w-4 ${c.color}`} />
-              </div>
+              </p>
+              <p className={`mt-1.5 text-2xl font-bold text-slate-900 ${numClass}`}>{c.valor}</p>
             </div>
-            <p className={`text-3xl font-bold ${c.color}`}>{c.valor}</p>
+            <span
+              className={`flex size-10 shrink-0 items-center justify-center rounded-lg border shadow-sm transition-transform group-hover:scale-105 ${c.tile}`}
+            >
+              <c.icon className="size-4" strokeWidth={2} />
+            </span>
           </div>
         ))}
       </div>
@@ -107,27 +103,6 @@ export default async function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2">
         <ConsumoPorCategoria saldos={saldos} />
         <ProximosVencimento lotes={lotes} />
-      </div>
-
-      <div className="flex flex-wrap gap-3">
-        <Link
-          className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-          href="/requisicoes"
-        >
-          Nova requisição
-        </Link>
-        <Link
-          className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-white px-4 py-2 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"
-          href="/estoque"
-        >
-          Registrar movimentação
-        </Link>
-        <Link
-          className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-white px-4 py-2 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"
-          href="/relatorios"
-        >
-          Ver relatórios
-        </Link>
       </div>
     </div>
   );
@@ -147,21 +122,24 @@ function ConsumoPorCategoria({ saldos }: { saldos: { produto: { categoria: strin
   const max = Math.max(...entries.map((e) => e[1]), 1);
 
   return (
-    <div className="rounded-xl border border-border bg-white p-5 shadow-sm ring-1 ring-foreground/5">
-      <h3 className="mb-4 text-sm font-semibold text-foreground">Produtos por categoria</h3>
+    <Panel
+      title="Produtos por categoria"
+      icon={TrendingUp}
+      action={<StatusPill tone="secondary">{entries.length} categorias</StatusPill>}
+    >
       {entries.length === 0 ? (
         <p className="text-sm text-muted-foreground">Nenhuma categoria encontrada.</p>
       ) : (
-        <ul className="space-y-3">
+        <ul className="space-y-4">
           {entries.map(([cat, qtd]) => (
-            <li key={cat} className="space-y-1">
+            <li key={cat} className="space-y-1.5">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-foreground">{cat}</span>
-                <span className="font-medium text-foreground">{qtd}</span>
+                <span className="font-medium text-slate-700">{cat}</span>
+                <span className={`text-primary ${numClass}`}>{qtd}</span>
               </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+              <div className="h-1.5 w-full overflow-hidden rounded-[2px] bg-slate-100">
                 <div
-                  className="h-full rounded-full bg-primary transition-all"
+                  className="h-full rounded-[2px] bg-primary/70"
                   style={{ width: `${(qtd / max) * 100}%` }}
                 />
               </div>
@@ -169,7 +147,7 @@ function ConsumoPorCategoria({ saldos }: { saldos: { produto: { categoria: strin
           ))}
         </ul>
       )}
-    </div>
+    </Panel>
   );
 }
 
@@ -185,38 +163,33 @@ function ProximosVencimento({
     })
     .slice(0, 8);
   return (
-    <div className="rounded-xl border border-border bg-white p-5 shadow-sm ring-1 ring-foreground/5">
-      <h3 className="mb-4 text-sm font-semibold text-foreground">Próximos do vencimento</h3>
+    <Panel
+      title="Próximos do vencimento"
+      icon={AlertTriangle}
+      action={<StatusPill tone="secondary">{items.length} lote(s)</StatusPill>}
+    >
       {items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Nenhum lote crítico.</p>
+        <p className="text-sm text-muted-foreground">Nenhum lote próximo do vencimento.</p>
       ) : (
-        <ul className="space-y-2">
+        <ul className="space-y-1">
           {items.map((l) => {
             const dias = diasParaVencer(l.dataValidade);
             const isCritico = dias <= 15;
             return (
               <li
                 key={l.numeroLote}
-                className="flex items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors hover:bg-muted/50"
+                className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-slate-50"
               >
-                <span className="truncate text-foreground">
+                <span className="truncate text-slate-700">
                   {l.produto.descricao}
-                  <span className="ml-1 text-xs text-muted-foreground">({l.numeroLote})</span>
+                  <span className="ml-1.5 text-xs text-slate-400">({l.numeroLote})</span>
                 </span>
-                <span
-                  className={`ml-2 shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
-                    isCritico
-                      ? "bg-destructive/10 text-destructive"
-                      : "bg-warning/10 text-warning"
-                  }`}
-                >
-                  {dias}d
-                </span>
+                <StatusPill tone={isCritico ? "destructive" : "warning"}>{dias}d</StatusPill>
               </li>
             );
           })}
         </ul>
       )}
-    </div>
+    </Panel>
   );
 }

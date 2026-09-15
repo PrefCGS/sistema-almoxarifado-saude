@@ -6,6 +6,7 @@ import {
   relatorioValidade,
   relatorioDistribuicao,
 } from "@/services/relatorios";
+import { gerarPdfRelatorio } from "@/services/pdf-relatorio";
 
 export async function GET(req: Request) {
   const auth = await requirePermissao("relatorio:ver");
@@ -13,8 +14,20 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const tipo = searchParams.get("tipo") ?? "estoque";
+  const formato = searchParams.get("formato") ?? "csv";
 
   try {
+    if (formato === "pdf") {
+      const pdfBuffer = await gerarPdfRelatorio(tipo, prisma);
+      const uint8 = new Uint8Array(pdfBuffer);
+      return new Response(uint8, {
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename=relatorio_${tipo}.pdf`,
+        },
+      });
+    }
+
     switch (tipo) {
       case "estoque":
         return json(await relatorioEstoque(prisma));
