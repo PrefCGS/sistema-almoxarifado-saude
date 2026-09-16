@@ -12,14 +12,14 @@ describe("máquina de estados de requisição", () => {
   });
 
   it("permite cancelar antes da entrega", () => {
-    expect(podeTransicionar("ABERTA", "CANCELADA", "ALMOXARIFE")).toBe(true);
+    expect(podeTransicionar("ABERTA", "CANCELADA", "GESTOR_SAUDE")).toBe(true);
     expect(podeTransicionar("EM_ANALISE", "CANCELADA", "GESTOR_SAUDE")).toBe(true);
-    expect(podeTransicionar("EM_TRANSPORTE", "CANCELADA", "ALMOXARIFE")).toBe(false);
+    expect(podeTransicionar("EM_TRANSPORTE", "CANCELADA", "GESTOR_SAUDE")).toBe(false);
   });
 
   it("bloqueia transições não permitidas", () => {
-    expect(podeTransicionar("ABERTA", "ENTREGUE", "ALMOXARIFE")).toBe(false);
-    expect(podeTransicionar("APROVADA", "EM_TRANSPORTE", "ALMOXARIFE")).toBe(false);
+    expect(podeTransicionar("ABERTA", "ENTREGUE", "GESTOR_SAUDE")).toBe(false);
+    expect(podeTransicionar("APROVADA", "EM_TRANSPORTE", "GESTOR_SAUDE")).toBe(false);
   });
 
   it("responsável de unidade não aprova", () => {
@@ -27,7 +27,7 @@ describe("máquina de estados de requisição", () => {
   });
 
   it("lista transições permitidas por perfil", () => {
-    const t = transicoesPermitidas("ABERTA", "ALMOXARIFE");
+    const t = transicoesPermitidas("ABERTA", "GESTOR_SAUDE");
     expect(t).toContain("EM_ANALISE");
     expect(t).toContain("CANCELADA");
   });

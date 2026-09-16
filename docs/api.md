@@ -29,7 +29,7 @@ Autenticação padrão: sessão via Better-Auth (`/api/auth/*`). Exceto rotas p�
 | PUT | `/api/produtos/:id` | Atualiza |
 | DELETE | `/api/produtos/:id` | Remove |
 
-Campos principais: `codigoInterno`, `descricao`, `categoria`, `unidadeMedida`, `fabricante`, `estoqueMinimo`, `estoqueMaximo`, `localizacaoFisica`, `situacao`.
+Campos principais: `codigoInterno`, `descricao`, `categoria`, `unidadeMedida`, `unidadeCompra`, `fatorConversao`, `preco`, `fabricante`, `estoqueMinimo`, `estoqueMaximo`, `localizacaoFisica`, `situacao`.
 
 ### Unidades
 
@@ -54,6 +54,10 @@ Campos principais: `codigo`, `nome`, `tipo`, `endereco`, `bairro`, `cidade`, `ce
 
 Campos principais: `nome`, `email`, `senha` (criação), `perfil`, `unidadeId`, `ativo`.
 
+> Somente o perfil **`RESPONSAVEL_UNIDADE`** é vinculado a uma unidade (`unidadeId` **obrigatória**). Para `GESTOR_SAUDE`/`ADMINISTRADOR`, `unidadeId` deve ser nula.
+>
+> `PATCH /api/usuarios/:id`: `perfil` e `unidadeId` só podem ser alterados pelo perfil **OWNER** (senão `403`); vale a mesma regra de vínculo acima. Ver [`autenticacao.md`](./autenticacao.md).
+
 ### Movimentações
 
 | Método | Rota | Descrição |
@@ -61,7 +65,7 @@ Campos principais: `nome`, `email`, `senha` (criação), `perfil`, `unidadeId`, 
 | GET | `/api/movimentacoes` | Lista movimentações |
 | POST | `/api/movimentacoes` | Registra movimentação |
 
-Campos principais: `tipo`, `produtoId`, `loteId`, `unidadeDestinoId`, `quantidade`, `numeroNotaFiscal`, `fornecedor`, `dataMovimentacao`, `observacoes`.
+Campos principais: `tipo`, `produtoId`, `loteId`, `unidadeDestinoId`, `quantidade`, `quantidadeCompra`, `numeroNotaFiscal`, `fornecedor`, `dataMovimentacao`, `observacoes`.
 
 ### Requisições
 
@@ -70,6 +74,7 @@ Campos principais: `tipo`, `produtoId`, `loteId`, `unidadeDestinoId`, `quantidad
 | GET | `/api/requisicoes` | Lista requisições |
 | POST | `/api/requisicoes` | Cria requisição |
 | POST | `/api/requisicoes/:id/transicao` | Avança status |
+| GET | `/api/requisicoes/:id/guia` | Guia de separação em PDF |
 
 Campos principais: `unidadeId`, `justificativa`, `extraordinaria`, `autorizacaoExcepcional`, `itens`.
 
@@ -103,9 +108,17 @@ Campos principais: `unidadeId`, `tipo`, `status`, `contagens`.
 | GET | `/api/relatorios?tipo=<tipo>&formato=csv` | Relatório em CSV |
 | GET | `/api/relatorios?tipo=<tipo>&formato=pdf` | Relatório em PDF institucional |
 
-Tipos: `estoque`, `cotas`, `validade`, `distribuicao`.
+Tipos: `estoque`, `cotas`, `validade`, `distribuicao`, `consumo-categoria`, `consumo-unidade`, `financeiro`.
 
-Observação: relatórios são consultas agregadas em tempo real, sem entidade persistente no banco. O PDF inclui `logo-prefeitura-horizontal.png`, identificação da secretaria e data de geração.
+Observação: relatórios são consultas agregadas em tempo real, sem entidade persistente no banco. Os PDFs seguem o padrão institucional de `src/services/pdf-utils.ts` (faixa colorida, tabela com zebra, rodapé "Página X de Y"), incluindo `logo-prefeitura-horizontal.png`, identificação da secretaria e data de geração.
+
+### Auditoria
+
+| Método | Rota | Descrição |
+| --- | --- | --- |
+| GET | `/api/auditoria` | Lista registros de auditoria (ordenados por data, com busca por ação/entidade/usuário) |
+
+Requere `auditoria:ver` (OWNER, ADMINISTRADOR e GESTOR_SAUDE). A tela `/auditoria` apresenta ações legíveis (ex.: "Criação", "Movimentação", "Transição → APROVADA") com tons semânticos e detalhes resumidos.
 
 ### Estoque
 

@@ -25,10 +25,10 @@ describe("regras de cota", () => {
     expect(r.disponivel).toBe(20);
   });
 
-  it("só Gestor da Saúde/Administrador autoriza exceção", () => {
+  it("só Gestor/Owner/Administrador autoriza exceção", () => {
     expect(podeAutorizarExcecao("GESTOR_SAUDE")).toBe(true);
     expect(podeAutorizarExcecao("ADMINISTRADOR")).toBe(true);
-    expect(podeAutorizarExcecao("ALMOXARIFE")).toBe(false);
+    expect(podeAutorizarExcecao("OWNER")).toBe(true);
     expect(podeAutorizarExcecao("RESPONSAVEL_UNIDADE")).toBe(false);
   });
 

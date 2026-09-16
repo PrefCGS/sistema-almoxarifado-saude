@@ -8,15 +8,13 @@ type Transicao = {
 
 const ADMIN: PerfilUsuario[] = ["OWNER", "ADMINISTRADOR"];
 const GESTAO: PerfilUsuario[] = ["OWNER", "ADMINISTRADOR", "GESTOR_SAUDE"];
-const ALMOX: PerfilUsuario[] = ["OWNER", "ADMINISTRADOR", "ALMOXARIFE"];
-const GESTAO_ALMOX: PerfilUsuario[] = ["OWNER", "ADMINISTRADOR", "GESTOR_SAUDE", "ALMOXARIFE"];
 
 export const MAQUINA_REQUISICAO: Transicao[] = [
-  { de: "ABERTA", para: ["EM_ANALISE", "CANCELADA"], perfis: GESTAO_ALMOX },
-  { de: "EM_ANALISE", para: ["APROVADA", "CANCELADA"], perfis: GESTAO_ALMOX },
-  { de: "APROVADA", para: ["SEPARACAO", "CANCELADA"], perfis: ALMOX },
-  { de: "SEPARACAO", para: ["EM_TRANSPORTE", "CANCELADA"], perfis: ALMOX },
-  { de: "EM_TRANSPORTE", para: ["ENTREGUE"], perfis: ALMOX },
+  { de: "ABERTA", para: ["EM_ANALISE", "CANCELADA"], perfis: GESTAO },
+  { de: "EM_ANALISE", para: ["APROVADA", "CANCELADA"], perfis: GESTAO },
+  { de: "APROVADA", para: ["SEPARACAO", "CANCELADA"], perfis: GESTAO },
+  { de: "SEPARACAO", para: ["EM_TRANSPORTE", "CANCELADA"], perfis: GESTAO },
+  { de: "EM_TRANSPORTE", para: ["ENTREGUE"], perfis: GESTAO },
   { de: "ENTREGUE", para: [], perfis: ADMIN },
   { de: "CANCELADA", para: [], perfis: ADMIN },
 ];

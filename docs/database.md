@@ -12,7 +12,7 @@ O sistema usa PostgreSQL via Prisma ORM. O modelo está em `prisma/schema.prisma
 | `SituacaoProduto` | `ATIVO`, `INATIVO` |
 | `TipoMovimentacao` | `ENTRADA_COMPRA`, `ENTRADA_DOACAO`, `ENTRADA_TRANSFERENCIA`, `SAIDA_DISTRIBUICAO`, `SAIDA_PERDA`, `SAIDA_VENCIMENTO`, `AJUSTE_INVENTARIO` |
 | `StatusRequisicao` | `ABERTA`, `EM_ANALISE`, `APROVADA`, `SEPARACAO`, `EM_TRANSPORTE`, `ENTREGUE`, `CANCELADA` |
-| `PerfilUsuario` | `OWNER`, `ADMINISTRADOR`, `GESTOR_SAUDE`, `ALMOXARIFE`, `RESPONSAVEL_UNIDADE` |
+| `PerfilUsuario` | `OWNER`, `ADMINISTRADOR`, `GESTOR_SAUDE`, `RESPONSAVEL_UNIDADE` |
 
 ## Tabelas de domínio
 
@@ -53,6 +53,7 @@ Item controlado no estoque.
 | `unidadeMedida` | string | |
 | `unidadeCompra` | string? | |
 | `fatorConversao` | int | default `1` |
+| `preco` | decimal? | Preço de referência (relatório financeiro) |
 | `fabricante` | string? | |
 | `estoqueMinimo` | int | default `0` |
 | `estoqueMaximo` | int | default `0` |

@@ -1,7 +1,11 @@
 "use client";
 
 import { apiGet, apiPost } from "@/lib/api-client";
+import type { Paginado } from "@/lib/pagination";
+import { usePaginacao } from "@/lib/use-paginacao";
 import PageHeader from "@/components/page-header";
+import ExpandableFormCard from "@/components/expandable-form-card";
+import Pagination from "@/components/pagination";
 import Panel from "@/components/panel";
 import StatusPill from "@/components/status-pill";
 import {
@@ -14,7 +18,7 @@ import {
   thRight,
   theadRowClass,
 } from "@/lib/ui";
-import { ArrowDown, ArrowLeftRight, ArrowUp, Plus } from "lucide-react";
+import { ArrowDown, ArrowLeftRight, ArrowUp } from "lucide-react";
 import { useEffect, useState } from "react";
 
 type Saldo = {
@@ -23,7 +27,12 @@ type Saldo = {
   produto: { descricao: string; codigoInterno: string };
   unidade: { nome: string };
 };
-type Produto = { id: string; descricao: string };
+type Produto = {
+  id: string;
+  descricao: string;
+  unidadeCompra: string | null;
+  fatorConversao: number;
+};
 type Unidade = { id: string; nome: string };
 type Mov = {
   id: string;
@@ -47,9 +56,25 @@ function movimentoTipo(tipo: string): "entrada" | "saida" {
   return tipo.startsWith("ENTRADA") || tipo === "AJUSTE_INVENTARIO" ? "entrada" : "saida";
 }
 
+const PER_PAGE = 10;
+
 export default function EstoquePage() {
-  const [saldos, setSaldos] = useState<Saldo[]>([]);
-  const [movs, setMovs] = useState<Mov[]>([]);
+  const [saldos, setSaldos] = useState<Paginado<Saldo>>({
+    itens: [],
+    total: 0,
+    pagina: 1,
+    totalPaginas: 1,
+    porPagina: PER_PAGE,
+  });
+  const [movs, setMovs] = useState<Paginado<Mov>>({
+    itens: [],
+    total: 0,
+    pagina: 1,
+    totalPaginas: 1,
+    porPagina: PER_PAGE,
+  });
+  const { pagina: pagSaldos, setPagina: setPagSaldos } = usePaginacao();
+  const { pagina: pagMovs, setPagina: setPagMovs } = usePaginacao();
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [unidades, setUnidades] = useState<Unidade[]>([]);
   const [form, setForm] = useState({
@@ -57,52 +82,98 @@ export default function EstoquePage() {
     produtoId: "",
     unidadeDestinoId: "",
     quantidade: 1,
+    quantidadeCompra: 1,
     numeroNotaFiscal: "",
     fornecedor: "",
     observacoes: "",
   });
   const [erro, setErro] = useState<string | null>(null);
 
-  async function carregar() {
+  async function carregarSaldos() {
     try {
-      const [s, m, p, u] = await Promise.all([
-        apiGet<Saldo[]>("/api/estoque/saldos"),
-        apiGet<Mov[]>("/api/movimentacoes"),
+      const params = new URLSearchParams({
+        page: String(pagSaldos),
+        perPage: String(PER_PAGE),
+      });
+      setSaldos(await apiGet<Paginado<Saldo>>(`/api/estoque/saldos?${params}`));
+    } catch (e) {
+      setErro(String(e));
+    }
+  }
+
+  async function carregarMovs() {
+    try {
+      const params = new URLSearchParams({
+        page: String(pagMovs),
+        perPage: String(PER_PAGE),
+      });
+      setMovs(await apiGet<Paginado<Mov>>(`/api/movimentacoes?${params}`));
+    } catch (e) {
+      setErro(String(e));
+    }
+  }
+
+  async function carregarDropdowns() {
+    try {
+      const [p, u] = await Promise.all([
         apiGet<Produto[]>("/api/produtos"),
         apiGet<Unidade[]>("/api/unidades"),
       ]);
-      setSaldos(s);
-      setMovs(m);
       setProdutos(p);
       setUnidades(u);
     } catch (e) {
       setErro(String(e));
     }
   }
+
   useEffect(() => {
-    carregar();
+    carregarSaldos();
+  }, [pagSaldos]);
+
+  useEffect(() => {
+    carregarMovs();
+  }, [pagMovs]);
+
+  useEffect(() => {
+    carregarDropdowns();
   }, []);
 
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
     setErro(null);
     try {
-      await apiPost("/api/movimentacoes", form);
+      const payload = usaFracionamento
+        ? { ...form, quantidade: form.quantidadeCompra * fator, quantidadeCompra: form.quantidadeCompra }
+        : form;
+      await apiPost("/api/movimentacoes", payload);
       setForm({
         ...form,
         quantidade: 1,
+        quantidadeCompra: 1,
         numeroNotaFiscal: "",
         fornecedor: "",
         observacoes: "",
         unidadeDestinoId: "",
       });
-      carregar();
+      setPagSaldos(1);
+      setPagMovs(1);
+      carregarSaldos();
+      carregarMovs();
     } catch (e) {
       setErro(String(e));
     }
   }
 
   const isSaidaDist = form.tipo === "SAIDA_DISTRIBUICAO";
+  const produtoSel = produtos.find((p) => p.id === form.produtoId);
+  const fator = produtoSel?.fatorConversao ?? 1;
+  const isEntrada = form.tipo.startsWith("ENTRADA");
+  const usaFracionamento = isEntrada && fator > 1;
+  const unidadeExibicao = usaFracionamento ? produtoSel?.unidadeCompra ?? "Cx" : "UN";
+
+  function atualizarCompra(valor: number) {
+    setForm({ ...form, quantidadeCompra: valor, quantidade: valor * fator });
+  }
 
   return (
     <div className="space-y-6">
@@ -118,7 +189,11 @@ export default function EstoquePage() {
         </div>
       )}
 
-      <Panel title="Registrar movimentação" icon={Plus}>
+      <ExpandableFormCard
+        buttonLabel="Nova movimentação"
+        title="Registrar movimentação"
+        icon={ArrowLeftRight}
+      >
         <form
           onSubmit={salvar}
           className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
@@ -147,14 +222,30 @@ export default function EstoquePage() {
               </option>
             ))}
           </select>
-          <input
-            className={inputClass}
-            type="number"
-            placeholder="Quantidade"
-            value={form.quantidade}
-            onChange={(e) => setForm({ ...form, quantidade: Number(e.target.value) })}
-            required
-          />
+          {usaFracionamento ? (
+            <>
+              <input
+                className={inputClass}
+                type="number"
+                placeholder={`Qtd (${unidadeExibicao})`}
+                value={form.quantidadeCompra}
+                onChange={(e) => atualizarCompra(Number(e.target.value))}
+                required
+              />
+              <span className="h-9 rounded-md border border-dashed border-slate-300 bg-slate-50 px-3 text-[12px] font-medium tabular-nums text-muted-foreground whitespace-nowrap">
+                = {form.quantidade} UN
+              </span>
+            </>
+          ) : (
+            <input
+              className={inputClass}
+              type="number"
+              placeholder="Quantidade"
+              value={form.quantidade}
+              onChange={(e) => setForm({ ...form, quantidade: Number(e.target.value) })}
+              required
+            />
+          )}
           {isSaidaDist && (
             <select
               className={selectClass}
@@ -192,12 +283,12 @@ export default function EstoquePage() {
             Registrar
           </button>
         </form>
-      </Panel>
+      </ExpandableFormCard>
 
       <div className="grid gap-6 md:grid-cols-2">
         <Panel title="Saldos" icon={ArrowDown} flush>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="min-w-full text-sm">
               <thead>
                 <tr className={theadRowClass}>
                   <th className={thClass}>Produto</th>
@@ -206,7 +297,7 @@ export default function EstoquePage() {
                 </tr>
               </thead>
               <tbody>
-                {saldos.map((s) => (
+                {saldos.itens.map((s) => (
                   <tr key={s.id} className={rowClass}>
                     <td className={`${tdClass} text-foreground`}>{s.produto.descricao}</td>
                     <td className={`${tdClass} text-muted-foreground`}>{s.unidade.nome}</td>
@@ -215,7 +306,7 @@ export default function EstoquePage() {
                     </td>
                   </tr>
                 ))}
-                {saldos.length === 0 && (
+                {saldos.total === 0 && (
                   <tr>
                     <td className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={3}>
                       Sem saldos.
@@ -225,11 +316,21 @@ export default function EstoquePage() {
               </tbody>
             </table>
           </div>
+          {saldos.totalPaginas > 1 && (
+            <Pagination
+              pagina={saldos.pagina}
+              totalPaginas={saldos.totalPaginas}
+              total={saldos.total}
+              porPagina={saldos.porPagina}
+              onChange={setPagSaldos}
+              label="saldo(s)"
+            />
+          )}
         </Panel>
 
         <Panel title="Últimas movimentações" icon={ArrowUp} flush>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="min-w-full text-sm">
               <thead>
                 <tr className={theadRowClass}>
                   <th className={thClass}>Tipo</th>
@@ -238,7 +339,7 @@ export default function EstoquePage() {
                 </tr>
               </thead>
               <tbody>
-                {movs.slice(0, 15).map((m) => {
+                {movs.itens.map((m) => {
                   const isEntrada = movimentoTipo(m.tipo) === "entrada";
                   return (
                     <tr key={m.id} className={rowClass}>
@@ -259,7 +360,7 @@ export default function EstoquePage() {
                     </tr>
                   );
                 })}
-                {movs.length === 0 && (
+                {movs.total === 0 && (
                   <tr>
                     <td className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={3}>
                       Sem movimentações.
@@ -269,6 +370,16 @@ export default function EstoquePage() {
               </tbody>
             </table>
           </div>
+          {movs.totalPaginas > 1 && (
+            <Pagination
+              pagina={movs.pagina}
+              totalPaginas={movs.totalPaginas}
+              total={movs.total}
+              porPagina={movs.porPagina}
+              onChange={setPagMovs}
+              label="movimentação(ões)"
+            />
+          )}
         </Panel>
       </div>
     </div>

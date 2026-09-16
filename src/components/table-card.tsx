@@ -27,7 +27,7 @@ export default function TableCard({
           )}
         </div>
       )}
-      <div className="overflow-x-auto">{children}</div>
+      <div className="overflow-x-auto [&>table]:min-w-full">{children}</div>
     </section>
   );
 }

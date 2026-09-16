@@ -22,6 +22,8 @@ export async function relatorioEstoque(prisma: PrismaClient) {
       saldoTotal,
       estoqueMinimo: p.estoqueMinimo,
       estoqueMaximo: p.estoqueMaximo,
+      preco: p.preco,
+      valor: saldoTotal * p.preco,
       critico: p.estoqueMinimo > 0 && saldoTotal < p.estoqueMinimo,
       vencidos,
       semMovimentacao,
@@ -89,5 +91,45 @@ export async function relatorioDistribuicao(
     unidade: m.unidadeDestino?.nome ?? "-",
     produto: m.produto.descricao,
     quantidade: m.quantidade,
+  }));
+}
+
+export async function relatorioConsumoCategoria(prisma: PrismaClient) {
+  const movs = await prisma.movimentacao.findMany({
+    where: { tipo: "SAIDA_DISTRIBUICAO" },
+    include: { produto: true },
+  });
+  const map = new Map<string, number>();
+  for (const m of movs) {
+    map.set(m.produto.categoria, (map.get(m.produto.categoria) ?? 0) + m.quantidade);
+  }
+  return Array.from(map.entries())
+    .map(([categoria, quantidade]) => ({ categoria, quantidade }))
+    .sort((a, b) => b.quantidade - a.quantidade);
+}
+
+export async function relatorioConsumoUnidade(prisma: PrismaClient) {
+  const movs = await prisma.movimentacao.findMany({
+    where: { tipo: "SAIDA_DISTRIBUICAO" },
+    include: { unidadeDestino: true },
+  });
+  const map = new Map<string, number>();
+  for (const m of movs) {
+    const nome = m.unidadeDestino?.nome ?? "-";
+    map.set(nome, (map.get(nome) ?? 0) + m.quantidade);
+  }
+  return Array.from(map.entries())
+    .map(([unidade, quantidade]) => ({ unidade, quantidade }))
+    .sort((a, b) => b.quantidade - a.quantidade);
+}
+
+export async function relatorioFinanceiro(prisma: PrismaClient) {
+  const saldos = await prisma.saldoEstoque.findMany({ include: { produto: true } });
+  return saldos.map((s) => ({
+    codigoInterno: s.produto.codigoInterno,
+    produto: s.produto.descricao,
+    saldo: s.quantidade,
+    preco: s.produto.preco,
+    valor: s.quantidade * s.produto.preco,
   }));
 }

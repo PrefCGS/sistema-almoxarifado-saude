@@ -11,7 +11,7 @@ export const tipoUnidadeSchema = z.enum([
   "OUTRO",
 ]);
 
-export const unidadeSchema = z.object({
+const unidadeBase = z.object({
   codigo: z.string().min(1, "Código é obrigatório").max(20),
   nome: z.string().min(2, "Nome muito curto").max(120),
   tipo: tipoUnidadeSchema,
@@ -26,5 +26,17 @@ export const unidadeSchema = z.object({
   situacao: z.enum(["ATIVA", "INATIVA"]).default("ATIVA"),
   isAlmoxarifado: z.boolean().default(false),
 });
+
+export const unidadeSchema = unidadeBase.superRefine((data, ctx) => {
+  if (data.tipo === "ALMOXARIFADO_CENTRAL" && !data.cnpj) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "CNPJ é obrigatório para o Almoxarifado Central",
+      path: ["cnpj"],
+    });
+  }
+});
+
+export const unidadePartialSchema = unidadeBase.partial();
 
 export type UnidadeInput = z.infer<typeof unidadeSchema>;

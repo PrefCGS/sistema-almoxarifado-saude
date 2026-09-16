@@ -111,8 +111,14 @@ Resultado:
 O **Administrador** aprova/desativa usuários pela página de Usuários ou via:
 
 - `PATCH /api/usuarios/[id]` (requer `usuario:gerenciar`)
-- Body (parcial): `{ ativo?: boolean, perfil?: PerfilUsuario, unidadeId?: string }`
+- Body (parcial): `{ ativo?: boolean, nome?, email? }`
 - Aprovar acesso = `ativo: true`. Desativar = `ativo: false`.
+
+> **Alteração de perfil e unidade é exclusiva do OWNER.** A mudança de `perfil` e/ou `unidadeId` (o vínculo do usuário a uma unidade) só pode ser feita pelo perfil `OWNER` (Secretaria de TI) — para outro perfil a rota responde `403 "Somente o owner pode alterar perfil e unidade de usuários"`.
+>
+> **Vínculo com unidade:** apenas o perfil **`RESPONSAVEL_UNIDADE`** possui `unidadeId` (obrigatória no cadastro e ao trocar o perfil para ele). Para `GESTOR_SAUDE` e `ADMINISTRADOR` a unidade é sempre `null` — trocar um responsável para outro perfil automaticamente remove o vínculo.
+>
+> O perfil `OWNER` em si nunca é atribuído pela API (apenas via variável de ambiente `OWNERS`).
 
 ---
 
@@ -143,24 +149,26 @@ Fonte: `src/lib/permissions.ts`.
 Tipos de ação (`Acao`):
 `dashboard:ver` · `unidade:gerenciar` · `produto:gerenciar` · `usuario:gerenciar` · `cota:gerenciar` · `cota:excecao` · `movimentacao:gerenciar` · `requisicao:criar` · `requisicao:aprovar` · `requisicao:separar` · `requisicao:entregar` · `inventario:gerenciar` · `relatorio:ver` · `auditoria:ver`.
 
-| Ação | OWNER | ADMIN | GESTOR_SAUDE | ALMOXARIFE | RESP_UNIDADE |
-|---|---|---|---|---|---|
-| `dashboard:ver` | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `unidade:gerenciar` | ✅ | ✅ | — | — | — |
-| `produto:gerenciar` | ✅ | ✅ | — | — | — |
-| `usuario:gerenciar` | ✅ | ✅ | — | — | — |
-| `cota:gerenciar` | ✅ | ✅ | — | — | — |
-| `cota:excecao` | ✅ | ✅ | ✅ | — | — |
-| `movimentacao:gerenciar` | ✅ | ✅ | — | ✅ | — |
-| `requisicao:criar` | ✅ | ✅ | — | — | ✅ |
-| `requisicao:aprovar` | ✅ | ✅ | ✅ | ✅ | — |
-| `requisicao:separar` | ✅ | ✅ | — | ✅ | — |
-| `requisicao:entregar` | ✅ | ✅ | — | ✅ | — |
-| `inventario:gerenciar` | ✅ | ✅ | — | ✅ | — |
-| `relatorio:ver` | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `auditoria:ver` | ✅ | ✅ | — | — | — |
+| Ação | OWNER | ADMIN | GESTOR_SAUDE | RESP_UNIDADE |
+|---|---|---|---|---|
+| `dashboard:ver` | ✅ | ✅ | ✅ | ✅ |
+| `unidade:gerenciar` | ✅ | ✅ | ✅ | — |
+| `produto:gerenciar` | ✅ | ✅ | ✅ | — |
+| `usuario:gerenciar` | ✅ | ✅ | ✅ | — |
+| `cota:gerenciar` | ✅ | ✅ | ✅ | — |
+| `cota:excecao` | ✅ | ✅ | ✅ | — |
+| `movimentacao:gerenciar` | ✅ | ✅ | ✅ | — |
+| `requisicao:criar` | ✅ | ✅ | ✅ | ✅ |
+| `requisicao:aprovar` | ✅ | ✅ | ✅ | — |
+| `requisicao:separar` | ✅ | ✅ | ✅ | — |
+| `requisicao:entregar` | ✅ | ✅ | ✅ | — |
+| `inventario:gerenciar` | ✅ | ✅ | ✅ | — |
+| `relatorio:ver` | ✅ | ✅ | ✅ | ✅ |
+| `auditoria:ver` | ✅ | ✅ | ✅ | — |
 
-> **OWNER** (Secretaria de TI) possui **todas** as permissões — controle pleno do sistema.
+> **OWNER** (Secretaria de TI) possui **todas** as permissões — controle pleno do sistema. É atribuído exclusivamente via env (`OWNERS`).
+>
+> **ADMINISTRADOR** também possui acesso total (perfil técnico da TI), mas o sistema **não é feito para a operação diária deles** — a operação é do GESTOR_SAUDE, o admin interno da saúde.
 
 ### Helpers
 
@@ -170,9 +178,9 @@ Tipos de ação (`Acao`):
 
 ### Perfis e responsabilidades
 
-- **ADMINISTRADOR**: config geral (unidades, produtos, usuários, cotas) + quaisquer transições de requisição.
-- **GESTOR_SAUDE**: aprova requisições e **autoriza exceção de cota**.
-- **ALMOXARIFE**: registra movimentações, separa/entrega requisições, executa inventário.
+- **OWNER (Secretaria de TI)**: todas as permissões; único que altera **perfil** e **unidade** de outros usuários. Não criável pela interface/API.
+- **ADMINISTRADOR**: acesso total (perfil técnico da TI); o sistema não é feito para a operação diária deles.
+- **GESTOR_SAUDE**: **admin interno da saúde** — gerencia unidades, produtos, cotas e usuários; registra movimentações; aprova/separa/entrega requisições; executa inventário; vê relatórios e auditoria.
 - **RESPONSAVEL_UNIDADE**: cria requisições da própria unidade, consulta saldo/relatórios da própria unidade.
 
 ---

@@ -17,13 +17,13 @@ e `CANCELADA` (terminal, a partir de vários estados).
 
 | De | Para | Perfis permitidos |
 |---|---|---|
-| `ABERTA` | `EM_ANALISE`, `CANCELADA` | ADMIN, GESTOR_SAUDE, ALMOXARIFE |
-| `EM_ANALISE` | `APROVADA`, `CANCELADA` | ADMIN, GESTOR_SAUDE, ALMOXARIFE |
-| `APROVADA` | `SEPARACAO`, `CANCELADA` | ADMIN, ALMOXARIFE |
-| `SEPARACAO` | `EM_TRANSPORTE`, `CANCELADA` | ADMIN, ALMOXARIFE |
-| `EM_TRANSPORTE` | `ENTREGUE` | ADMIN, ALMOXARIFE |
-| `ENTREGUE` | — | ADMIN (terminal) |
-| `CANCELADA` | — | ADMIN (terminal) |
+| `ABERTA` | `EM_ANALISE`, `CANCELADA` | OWNER, ADMIN, GESTOR_SAUDE |
+| `EM_ANALISE` | `APROVADA`, `CANCELADA` | OWNER, ADMIN, GESTOR_SAUDE |
+| `APROVADA` | `SEPARACAO`, `CANCELADA` | OWNER, ADMIN, GESTOR_SAUDE |
+| `SEPARACAO` | `EM_TRANSPORTE`, `CANCELADA` | OWNER, ADMIN, GESTOR_SAUDE |
+| `EM_TRANSPORTE` | `ENTREGUE` | OWNER, ADMIN, GESTOR_SAUDE |
+| `ENTREGUE` | — | OWNER, ADMIN (terminal) |
+| `CANCELADA` | — | OWNER, ADMIN (terminal) |
 
 Helpers:
 - `podeTransicionar(de, para, perfil): boolean` — valida a transição.
@@ -51,7 +51,13 @@ Ao aprovar (`EM_ANALISE → APROVADA`), a rota de transição processa **item a 
 ### 1.4 Autorização excepcional de cota
 
 - `autorizacaoExcepcional = true` no corpo da transição permite estourar a cota.
-- **Restrito** a `GESTOR_SAUDE` e `ADMINISTRADOR` (`podeAutorizarExcecao`); senão `403`.
+- **Restrito** a `GESTOR_SAUDE`, `ADMINISTRADOR` e `OWNER` (`podeAutorizarExcecao`); senão `403`.
+
+### 1.5 Guia de separação (PDF)
+
+Ao autorizar a separação, quem opera a requisição (GESTOR_SAUDE, ADMIN ou OWNER) emite o **guia de separação** em PDF (`GET /api/requisicoes/:id/guia`) pela própria tela da requisição. O documento institucional (`src/services/pdf-guia.ts`, com layout de `pdf-utils.ts`) lista cabeçalho com número da requisição, unidades de destino e origem, itens e linha de assinatura — evita papel solto e serve de conferência na retirada dos itens do almoxarifado.
+
+> A emissão fica registrada em auditoria (`GUIA_SEPARACAO`).
 
 ---
 
@@ -96,6 +102,10 @@ isEntrada(tipo) ? saldoAtual + quantidade : saldoAtual - quantidade
 
 `converterUnidadeCompra(quantidadeCompra, fatorConversao)` = `quantidadeCompra × fatorConversao` (se fator > 0). Permite negociar na unidade de compra (ex.: caixa) e dispensar na unidade de medida.
 
+- O registro do produto guarda `unidadeCompra` e `fatorConversao` (Schema: `src/lib/schemas.ts`).
+- Na **API de movimentação** (entradas), `quantidadeCompra` é opcional e usado apenas quando `fatorConversao > 1`; a quantidade **dispensada** (saldo) é sempre calculada como `quantidadeCompra × fatorConversao`. Sem `quantidadeCompra`, considera-se entregue/comprado já na unidade de medida.
+- A quantidade exibida ao usuário fica sempre na **unidade de medida** do produto (dispensação).
+
 ---
 
 ## 3. Inventário Físico
@@ -132,7 +142,7 @@ Serviço: `src/services/cotas.ts`.
 - O **consumo** ocorre apenas na **aprovação de requisição** (seção 1.3): soma a quantidade aprovada em `quantidadeUtilizada` e registra em `HistoricoCota`.
 - Regras:
   - `verificarCota(...)` → calcula disponível/excedente e se `excede`.
-  - `podeAutorizarExcecao(perfil)` → `GESTOR_SAUDE` ou `ADMINISTRADOR`.
+  - `podeAutorizarExcecao(perfil)` → `OWNER`, `GESTOR_SAUDE` ou `ADMINISTRADOR`.
   - `quantidadeAprovadaCota(verif, excepcional)` → define a quantidade realmente aprovada.
 - **Relatório de cotas**: percentual de uso = `round(utilizada / autorizada * 100)`; flag `excesso` quando `utilizada > autorizada`.
 
@@ -165,6 +175,11 @@ Serviço: `src/services/relatorios.ts`. Todos exigem `relatorio:ver`.
 | **Cotas** | Por cota: unidade, produto, período, autorizada, utilizada, disponível, `percentual`, `excesso`. |
 | **Validade** | Todos os lotes com `diasRestantes` e flag `vencido`. |
 | **Distribuição** | Saídas `SAIDA_DISTRIBUICAO` (unidade de destino, produto, quantidade), filtráveis por `inicio`/`fim`. |
+| **Consumo por categoria** | Somatório de saídas de cada categoria de produto. |
+| **Consumo por unidade** | Totais de saída por unidade (com destaque para as que mais consomem). |
+| **Financeiro** | Valor consumido/em estoque por produto/categoria: `preco × quantidade` (usa o campo `preco` de cada produto). |
+
+O dashboard também exibe **card de valor do estoque** (soma de `saldo × preco`).
 
 ---
 
@@ -172,7 +187,9 @@ Serviço: `src/services/relatorios.ts`. Todos exigem `relatorio:ver`.
 
 Toda operação de escrita relevante chama `registrarAuditoria` (`src/lib/audit.ts`), que grava em `AuditLog`:
 
-- `acao` (ex.: `CRIAR`, `ATUALIZAR`, `EXCLUIR`, `MOVIMENTAR`, `TRANSICAO_APROVADA`, `FINALIZAR`, `VERIFICAR_VALIDADE`).
+- `acao` (ex.: `CRIAR`, `ATUALIZAR`, `EXCLUIR`, `MOVIMENTAR`, `TRANSICAO_APROVADA`, `FINALIZAR`, `VERIFICAR_VALIDADE`, `GUIA_SEPARACAO`).
 - `entidade` + `entidadeId`, `usuario`/`usuarioEmail`, `detalhes` (JSON opcional).
 
 A auditoria roda em `try/catch` e **nunca** interrompe a operação principal em caso de falha.
+
+A tela `/auditoria` (`src/app/(dashboard)/auditoria/page.tsx`, requer `auditoria:ver`) apresenta a trilha com **ações legíveis em pt-BR e tons semânticos** (ex.: "Criação" em tom de sucesso, "Movimentação" em tom informativo, "Transição → APROVADA"), **datas formatadas** e coluna de **detalhes resumidos** (`chave: valor`) em vez de JSON cru — o identificador interno (`id`) é ocultado para leitura humana.

@@ -24,6 +24,7 @@ export const movimentacaoSchema = z
     loteId: z.string().optional().nullable(),
     unidadeDestinoId: z.string().optional().nullable(),
     quantidade: z.number().int().positive(),
+    quantidadeCompra: z.number().int().positive().optional(),
     numeroNotaFiscal: z.string().max(40).optional().nullable(),
     fornecedor: z.string().max(120).optional().nullable(),
     dataMovimentacao: z.coerce.date().optional(),

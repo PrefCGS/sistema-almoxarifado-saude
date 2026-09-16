@@ -39,9 +39,9 @@ cp .env.example .env
 npm run db:generate
 
 # 4. (Escolha um) criar o schema no banco
-npm run db:migrate   # recomendado (gera migrations versionadas)
+npm run db:push      # usado neste projeto (sem pasta de migrations)
 # ou
-npm run db:push      # rápido, sem migrations
+npm run db:migrate   # apenas se quiser passar a usar migrations versionadas
 
 # 5. Rodar em desenvolvimento
 npm run dev
@@ -93,9 +93,9 @@ Referência do provider: https://better-auth.com/docs/authentication/microsoft
 ## 5. Migrações e Banco de Dados
 
 - O schema vive em [`prisma/schema.prisma`](../prisma/schema.prisma).
-- **Desenvolvimento:** `npm run db:migrate` gera migrations versionadas.
-- **Produção/CI:** aplicar migrations com `prisma migrate deploy` (não `migrate dev`).
+- **Atualmente este projeto não usa pasta de migrations** (`prisma/migrations`): o schema é aplicado com `npm run db:push` (`prisma db push`), que já regenera o Prisma Client.
 - Para inspeção rápida: `npm run db:studio`.
+- Ao remover valores de enums (ex.: perfil), faça o **remapeamento dos registros existentes antes** do `db push` (Prisma rejeita o push se o valor ainda estiver em uso no banco).
 
 ---
 
@@ -127,13 +127,27 @@ O endpoint `POST /api/validade/verificar` dispara os e-mails de alerta de valida
 
 ---
 
-## 8. Observações de Build (bloqueador conhecido)
+### Dados de exemplo (seeds)
 
-> **Nota de operação:** no momento da documentação, `npm run build` falha no estágio de verificação de tipos em um endpoint **pré-existente**:
-> `src/app/api/requisicoes/[id]/transicao/route.ts` — o arquivo re-exporta a função não-HTTP `proximoStatus`, o que conflita com a checagem de tipos de Route Handlers do Next (`Property 'proximoStatus' is incompatible with index signature`).
+O projeto inclui **scripts de seed** (executados via `tsx`, com o `DATABASE_URL` já configurado):
 
-Esse problema **não** está relacionado à documentação nem às features de auth/UI recentes. Correção sugerida (se desejado):
-- Remover o `export { proximoStatus }` desse arquivo de rota (manter a função só em `src/services/requisicoes.ts`), **ou**
-- Mover o uso de `proximoStatus` para um módulo de rotas não HTTP.
+| Script | Comando | Conteúdo |
+|---|---|---|
+| `scripts/seed.ts` | `tsx scripts/seed.ts` | Dados mínimos para o fluxo (unidade, produtos, usuário admin, etc.). |
+| `scripts/seed-real.ts` | `npm run db:seed` | Dados "reais" da SMS: unidades, produtos, estoques e usuários — cidade padrão **Campina Grande do Sul**. |
+| `scripts/seed-massivo.ts` | `tsx scripts/seed-massivo.ts` | Massa volumétrica para testes/desenvolvimento (muitas unidades/produtos/movimentações). |
 
-Há também um aviso pré-existente sobre `experimental.typedRoutes` (agora em `typedRoutes`) no `next.config.ts`.
+> Todos os scripts usam `cidade: "Campina Grande do Sul"` para os endereços de unidade.
+
+---
+
+## 8. Observações de Build
+
+O `npm run build` funciona normalmente (build de produção completa as páginas estáticas). Se páginas antigas persistirem após mudanças no ecossistema, remova o cache do Next:
+
+```bash
+Remove-Item -Recurse -Force .next
+npm run build
+```
+
+> Registro pré-existente: o aviso de `experimental.typedRoutes` (agora `typedRoutes`) em `next.config.ts` é apenas informativo.

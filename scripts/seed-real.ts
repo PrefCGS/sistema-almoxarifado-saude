@@ -19,7 +19,7 @@ const UNIDADES_REAIS = [
 ];
 
 const CATEGORIAS = ["MEDICAMENTO", "MEDICO_HOSPITALAR", "LIMPEZA_HIGIENE"] as const;
-const PERFIS = ["ADMINISTRADOR", "GESTOR_SAUDE", "ALMOXARIFE", "RESPONSAVEL_UNIDADE"] as const;
+const PERFIS = ["ADMINISTRADOR", "GESTOR_SAUDE", "RESPONSAVEL_UNIDADE"] as const;
 const PERIODOS = ["MENSAL", "TRIMESTRAL", "SEMESTRAL", "ANUAL"] as const;
 const FABRICANTES = ["Becton Dickinson", "Johnson & Johnson", "3M Health Care", "Medtronic", "Hartmann", "Lifemed", "Mikros", "Philips Healthcare"];
 const NOMES_PRODUTOS = [
@@ -75,7 +75,7 @@ async function main() {
         cnpj: `${randomInt(10, 99)}.${randomInt(100, 999)}.${randomInt(100, 999)}/${randomInt(1000, 9999)}-${randomInt(10, 99)}`,
         endereco: `Rua ${randomItem(["A", "B", "C", "D", "E"])}, ${randomInt(1, 999)}`,
         bairro: u.bairro,
-        cidade: "Castro",
+        cidade: "Campina Grande do Sul",
         cep: `${randomInt(10000, 99999)}-${randomInt(100, 999)}`,
         telefone: `(${randomInt(11, 99)}) 9${randomInt(1000, 9999)}-${randomInt(1000, 9999)}`,
         email: `${u.codigo.toLowerCase()}@sms.gov.br`,
@@ -128,13 +128,14 @@ async function main() {
   console.log("Criando usuários...");
   const perfis = [...PERFIS];
   for (let i = 0; i < 60; i++) {
+    const perfil = randomItem(perfis);
     const usuario = await prisma.usuario.create({
       data: {
         authUserId: `seed-user-${i + 1}`,
         nome: `Usuário ${i + 1}`,
         email: `usuario${i + 1}@sms.gov.br`,
-        perfil: randomItem(perfis),
-        unidadeId: randomItem(unidades).id,
+        perfil,
+        unidadeId: perfil === "RESPONSAVEL_UNIDADE" ? randomItem(unidades).id : null,
         ativo: randomInt(1, 20) !== 1,
       },
     });

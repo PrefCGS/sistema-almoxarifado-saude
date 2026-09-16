@@ -1,8 +1,10 @@
 "use client";
 
 import PageHeader from "@/components/page-header";
+import Pagination from "@/components/pagination";
 import TableCard from "@/components/table-card";
 import { apiGet } from "@/lib/api-client";
+import type { Paginado } from "@/lib/pagination";
 import { btnSecondary, rowClass, tdClass, thClass, theadRowClass } from "@/lib/ui";
 import { Download, FileText } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -11,9 +13,12 @@ type Linha = Record<string, string | number | boolean | null>;
 
 const TIPOS = [
   { key: "estoque", label: "Estoque" },
+  { key: "financeiro", label: "Financeiro" },
   { key: "cotas", label: "Cotas" },
   { key: "validade", label: "Validade" },
   { key: "distribuicao", label: "Distribuição" },
+  { key: "consumo-unidade", label: "Consumo p/ unidade" },
+  { key: "consumo-categoria", label: "Consumo p/ categoria" },
 ];
 
 function toCsv(rows: Linha[]): string {
@@ -26,31 +31,50 @@ function toCsv(rows: Linha[]): string {
 
 export default function RelatoriosPage() {
   const [tipo, setTipo] = useState("estoque");
-  const [dados, setDados] = useState<Linha[]>([]);
+  const [dados, setDados] = useState<Paginado<Linha>>({
+    itens: [],
+    total: 0,
+    pagina: 1,
+    totalPaginas: 1,
+    porPagina: 15,
+  });
+  const [pagina, setPagina] = useState(1);
   const [erro, setErro] = useState<string | null>(null);
 
-  async function carregar(t: string) {
+  async function carregar() {
     setErro(null);
     try {
-      const rows = await apiGet<Linha[]>(`/api/relatorios?tipo=${t}`);
+      const rows = await apiGet<Paginado<Linha>>(
+        `/api/relatorios?tipo=${tipo}&page=${pagina}&perPage=15`,
+      );
       setDados(rows);
     } catch (e) {
       setErro(String(e));
     }
   }
   useEffect(() => {
-    carregar(tipo);
-  }, [tipo]);
+    carregar();
+  }, [tipo, pagina]);
 
-  function exportarCsv() {
-    const csv = toCsv(dados);
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `relatorio_${tipo}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+  function mudarTipo(t: string) {
+    setTipo(t);
+    setPagina(1);
+  }
+
+  async function exportarCsv() {
+    try {
+      const rows = await apiGet<Linha[]>(`/api/relatorios?tipo=${tipo}`);
+      const csv = toCsv(rows);
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `relatorio_${tipo}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setErro(String(e));
+    }
   }
 
   async function exportarPdf() {
@@ -88,7 +112,7 @@ export default function RelatoriosPage() {
                   ? "bg-primary text-white"
                   : "text-muted-foreground hover:bg-slate-100 hover:text-slate-900"
               }`}
-              onClick={() => setTipo(t.key)}
+              onClick={() => mudarTipo(t.key)}
               type="button"
             >
               {t.label}
@@ -105,12 +129,12 @@ export default function RelatoriosPage() {
         </button>
       </div>
 
-      <TableCard count={dados.length} countLabel="linha(s)" emptyMessage="Nenhum dado para exibir.">
+      <TableCard count={dados.total} countLabel="linha(s)" emptyMessage="Nenhum dado para exibir.">
         <table className="w-full text-sm">
           <thead>
             <tr className={theadRowClass}>
-              {dados[0] &&
-                Object.keys(dados[0]).map((c) => (
+              {dados.itens[0] &&
+                Object.keys(dados.itens[0]).map((c) => (
                   <th key={c} className={thClass}>
                     {c}
                   </th>
@@ -118,7 +142,7 @@ export default function RelatoriosPage() {
             </tr>
           </thead>
           <tbody>
-            {dados.map((row) => (
+            {dados.itens.map((row) => (
               <tr key={JSON.stringify(row)} className={rowClass}>
                 {Object.entries(row).map(([key, v]) => (
                   <td key={key} className={`${tdClass} text-foreground`}>
@@ -127,7 +151,7 @@ export default function RelatoriosPage() {
                 ))}
               </tr>
             ))}
-            {dados.length === 0 && (
+            {dados.total === 0 && (
               <tr>
                 <td className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={4}>
                   Nenhum dado para exibir.
@@ -136,6 +160,16 @@ export default function RelatoriosPage() {
             )}
           </tbody>
         </table>
+        {dados.totalPaginas > 1 && (
+          <Pagination
+            pagina={dados.pagina}
+            totalPaginas={dados.totalPaginas}
+            total={dados.total}
+            porPagina={dados.porPagina}
+            onChange={setPagina}
+            label="linha(s)"
+          />
+        )}
       </TableCard>
     </div>
   );

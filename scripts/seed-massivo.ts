@@ -23,7 +23,7 @@ const TIPOS_UNIDADE = [
 const PERFIS = [
   "ADMINISTRADOR",
   "GESTOR_SAUDE",
-  "ALMOXARIFE",
+  "GESTOR_SAUDE",
   "RESPONSAVEL_UNIDADE",
 ] as const;
 const TIPOS_MOVIMENTACAO = [
@@ -57,18 +57,7 @@ const BAIRROS = [
   "Residencial",
   "Panorama",
 ];
-const CIDADES = [
-  "Castro",
-  "Ponta Grossa",
-  "Telêmaco Borba",
-  "Carambeí",
-  "Jaguariaíva",
-  "Sengés",
-  "Balsa Nova",
-  "Campo Largo",
-  "Curitiba",
-  "Lapa",
-];
+const CIDADES = ["Campina Grande do Sul"];
 const NOMES_PRODUTOS = [
   "Dipirona",
   "Paracetamol",
@@ -286,7 +275,7 @@ async function main() {
         nome,
         email,
         perfil,
-        unidadeId: randomInt(1, 10) === 1 ? undefined : randomItem(unidades).id,
+        unidadeId: perfil === "RESPONSAVEL_UNIDADE" ? randomItem(unidades).id : null,
         ativo: randomInt(1, 20) !== 1,
       },
     });

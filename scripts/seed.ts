@@ -36,7 +36,7 @@ async function main() {
         tipo: "ALMOXARIFADO_CENTRAL",
         endereco: "Rua Exemplo, 1",
         bairro: "Centro",
-        cidade: "Cidade",
+        cidade: "Campina Grande do Sul",
         cep: "00000000",
         telefone: "000000000",
         email: "almox@sms.gov.br",

@@ -1,87 +1,68 @@
 # Identidade Visual / Design System
 
-Este documento descreve a paleta institucional (verde) e os componentes utilitários de interface do sistema.
+Este documento descreve a paleta institucional (azul) e os padrões de interface do sistema.
 
-**Fontes:** [`tailwind.config.ts`](../tailwind.config.ts) (tokens) · [`src/app/globals.css`](../src/app/globals.css) (utilitários) · componentes em `src/components/**`.
-
----
-
-## 1. Paleta de Cores (tokens Tailwind)
-
-| Token | Hex | Uso |
-|---|---|---|
-| `background` | `#E8F0EA` | Fundo geral das páginas. |
-| `foreground` | `#1A2E20` | Texto principal. |
-| `muted` | `#F0F5F1` | Fundo de superfícies secundárias (ex.: sidebar). |
-| `border` | `#B9E8C8` | Bordas de cards/tabelas/insumos. |
-| `primary` | `#008235` | **Verde principal** (ações, header, destaque). |
-| `primaryDark` | `#1D4A2D` | Hover/acento escuro (títulos, hover de btn-primary). |
-| `primaryLight` | `#CFF7DC` | Fundo de destaque/ativo (item ativo da sidebar). |
-| `primaryHover` | `#B9F8CF` | Hover de superfícies claras. |
-| `secondary` | `#4F7560` | Texto secundário / rótulos / subtítulos. |
-| `danger` | `#C0392B` | Ações destrutivas (excluir, desativar). |
-| `warning` | `#B7791F` | Avisos (ex.: saldo crítico). |
-| `success` | `#008235` | Confirmação/sucesso. |
-
-> Os tokens além da paleta institucional (danger/warning/success) foram derivados para estados semânticos.
+**Fontes:** [`tailwind.config.ts`](../tailwind.config.ts) e [`src/app/globals.css`](../src/app/globals.css) (tokens) · `src/lib/ui.ts` (classes utilitárias) · componentes em `src/components/**`.
 
 ---
 
-## 2. Ícone do Sistema
+## 1. Paleta de Cores (tokens)
 
-O ícone institucional é o **`briefcase-medical`** do lucide-react (pasta médica):
+Os tokens são definidos como **variáveis HSL** em `src/app/globals.css` (`:root`) e expostos via `tailwind.config.ts`.
+
+| Token (Tailwind) | HSL em `globals.css` | Aprox. Hex | Uso |
+|---|---|---|---|
+| `background` | `210 16% 90%` | `#E2EAE7` | Fundo geral das páginas. |
+| `foreground` | `210 25% 10%` | `#13201A` | Texto principal. |
+| `card` / `popover` | `210 16% 94%` | `#EFF2F4` | Superfícies de cards e menus. |
+| `primary` | `202 68% 47%` | `#268EC9` | **Azul principal** (ações, header, destaque, item ativo da sidebar). |
+| `primary-foreground` | `0 0% 99%` | `#FCFCFC` | Texto sobre `primary`. |
+| `secondary` | `210 12% 89%` | `#E1E6EA` | Fundo de botões/campos secundários. |
+| `muted` | `210 12% 92%` | `#E8ECEF` | Fundo de superfícies secundárias (sidebar). |
+| `accent` | `202 22% 90%` | `#E2EBF2` | Destaque suave / hover. |
+| `destructive` | `4 65% 55%` | `#D6494D` | Ações destrutivas (excluir, desativar). |
+| `warning` | `32 95% 44%` | `#DB7C04` | Avisos (ex.: saldo crítico, alertas). |
+| `success` | `160 70% 38%` | `#1DA570` | Confirmação/sucesso. |
+| `border` / `input` | `215 18% 82%` | `#C8D2D8` | Bordas de cards/tabelas/insumos. |
+| `ring` | `202 68% 47%` | `#268EC9` | Foco em campos. |
+| `sidebar-*` | `210 …` | — | Tons próprios da sidebar (fundo, foreground, acento, borda). |
+
+> A sprite `logo-prefeitura-horizontal.png` e os PDFs institucionais usam o azul `#268EC9` (`--primary`) como cor institucional.
+
+---
+
+## 2. Marca e Ícone do Sistema
+
+O ícone da marca é o **`box`** do lucide-react (caixa), exibido em branco dentro de um quadrado `bg-primary`:
 
 ```ts
-<path d="M12 11v4" />
-<path d="M14 13h-4" />
-<path d="M16 6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
-<path d="M18 6v14" />
-<path d="M6 6v14" />
-<rect width="20" height="14" x="2" y="6" rx="2" />
+import { Box } from "lucide-react";
 ```
 
-É usado no **header da sidebar** (dentro de uma caixa `bg-primary` com o ícone em branco) e como logo nas telas de autenticação.
+É usado no **header da sidebar** (`src/components/sidebar.tsx`) e no **auth-shell** (`src/components/auth-shell.tsx`), sempre acompanhado do nome **"Estoque SCE"**.
+
+Nas telas de autenticação, além do `Box`, também é exibida a **`logo-prefeitura-horizontal.png`** (`/public/logo-prefeitura-horizontal.png`), usada também nos PDFs institucionais.
 
 ---
 
-## 3. Componentes Utilitários (`globals.css`)
+## 3. Classes Utilizadas na Interface
 
-Definidos com `@apply` e reutilizados em todo o dashboard.
-
-### Botões
-| Classe | Aparência |
-|---|---|
-| `.btn` | Base: flex inline, `rounded-md`, padding, `text-sm font-medium`. |
-| `.btn-primary` | `bg-primary` + texto branco; hover `bg-primaryDark`; desabilitado `opacity-60 cursor-not-allowed`. |
-| `.btn-secondary` | Borda `border-border`, fundo branco, texto `foreground`; hover `bg-primaryLight/60`. |
-| `.btn-danger` | `bg-danger` + texto branco; hover `opacity-90`. |
-
-### Formulários
-- `.input` — campo: borda `border-border`, fundo branco, texto `foreground`; foco `border-primary` + `ring-2 ring-primary/25`; placeholder `text-foreground/40`.
-- `.label` — rótulo: `text-sm font-medium text-secondary` com `mb-1`.
-
-### Estrutura
-- `.card` — superfície: `rounded-xl border border-border bg-white p-5 shadow-sm`.
-- `.badge` — pill: `rounded-full px-2 py-0.5 text-xs font-medium`.
-
-### Página e tabelas
-- `.page-title` — título de página: `text-2xl font-bold tracking-tight text-primaryDark`.
-- `.page-subtitle` — subtítulo: `text-sm text-secondary` com `mt-1`.
-- `.th` — cabeçalho de tabela: `px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-secondary`.
-- `.td` — célula: `px-4 py-3 text-sm text-foreground/90`.
-- `.tr` — linha: `border-t border-border` com hover `bg-primaryLight/40`.
+- **Tokens e utilitários de base:** em `globals.css` — variáveis HSL (`:root`) + `.page-title`/`.page-subtitle`.
+- **Animações:** `animate-fade-in-up` (cards/forms abertos) e `animate-fade-in` (modais/overlays), definidas em `tailwind.config.ts`.
+- **Classes compostas (botões, inputs, tabelas):** exports de `src/lib/ui.ts` — `btnPrimary`, `btnSecondary`, `btnGhost`, `btnPrimarySm`, `btnDestructiveSm`, `btnSecondarySm`, `inputClass`, `selectClass`, `searchInputClass`, `theadRowClass`, `thClass`, `tdClass`, `rowClass`, `numClass`. Ver [`components.md`](./components.md).
 
 ---
 
 ## 4. Padrões Recomendados de Uso
 
 - **Títulos de página:** `page-title` + `page-subtitle` (evita repetição de estilos).
-- **Cards:** superfícies brancas `card` sobre fundo `background`.
-- **Ações primárias:** `btn-primary` (verde). **Secundárias:** `btn-secondary`. **Destrutivas:** `btn-danger`.
-- **Tabelas:** container com linha de cabeçalho usando `.th`, células `.td` e linhas `.tr`.
-- **Status:** `badge` com cores semânticas (ex.: `bg-success`/‹branco› para "Ativo", `warning` para "Aguardando", etc.).
-- **Sidebar:** fundo `muted`; item ativo `bg-primaryLight text-primaryDark`; logo `bg-primary` + ícone `briefcase-medical` branco.
-- **Auth shell:** fundo `background` com decoração radial verde em blur, logo em caixa `bg-primary`, título `text-primaryDark`, subtítulo `text-secondary` (largura `max-w-md`).
+- **Cards:** superfícies `bg-card` sobre fundo `background`.
+- **Ações primárias:** `bg-primary` (azul), texto branco. **Secundárias:** botão com borda e fundo claro. **Destrutivas:** `bg-destructive`.
+- **Novo registro/cadastro:** padrão `ExpandableFormCard` — apenas um **botão primário com ícone `+`** ("Novo produto", "Nova movimentação", etc.) que abre o card do formulário (ver seção 6).
+- **Status:** componente `StatusPill` com tons semânticos (`success` para "Ativo", `warning` para "Aguardando"/prazos, `destructive` para crítico, `secondary` para neutro).
+- **Tabelas:** container com linha de cabeçalho (`theadRowClass`/`thClass`), células `.td`-like (`tdClass`) e linhas (`rowClass`); números em `numClass`.
+- **Sidebar:** menu filtrado por permissão; item ativo `bg-primary/10 text-primary` com indicador à esquerda; logo `bg-primary` + ícone branco.
+- **Auth shell:** fundo `background` com decoração radial azul em blur, logo em caixa `bg-primary`, título `text-foreground`, subtítulo `text-muted-foreground` (largura `max-w-md`).
 
 ---
 
@@ -94,6 +75,31 @@ Definidos com `@apply` e reutilizados em todo o dashboard.
 
 ---
 
-## 6. Migração / Evolução
+## 6. Padrão de Cadastro/Registro (botão + card expansível)
+
+Toda tela de cadastro/registro segue o padrão `ExpandableFormCard` (`src/components/expandable-form-card.tsx`):
+
+- **Fechado:** um `<button>` primário (`bg-primary`, texto branco, `rounded-md`) com ícone `Plus` e rótulo claro do tipo de registro — ex.: "Nova unidade", "Novo produto", "Nova cota", "Novo usuário", "Nova requisição", "Nova movimentação", "Abrir inventário", "Registrar contagem".
+- **Aberto:** o botão dá lugar a um card (`card` + borda) com título, botão de fechar (X) e o formulário, com animação `animate-fade-in-up`.
+- Uso: `title` (título do card), `buttonLabel` (default `"Novo cadastro"`), `icon` e `children` (formulário).
+
+**Modal de edição:** edições secundárias (ex.: alterar perfil/unidade de um usuário pelo OWNER) usam overlay fixo com fundo escurecido (`bg-slate-900/40`), card central `rounded-xl`, botões Cancelar (`btnSecondary`) e Salvar (primário), e animação `animate-fade-in`.
+
+---
+
+## 7. PDFs Institucionais (`src/services/pdf-utils.ts`)
+
+Os PDFs (relatórios e guia de separação) seguem um padrão visual único:
+
+- **Capa:** logo `logo-prefeitura-horizontal.png`, título, identificação da secretaria, e divisória colorida.
+- **Cabeçalho de página:** **faixa colorida** na cor primária `#268EC9` com título da secretaria/relatório.
+- **Tabelas:** cabeçalho com fundo pintado, **linhas zebradas**, colunas numéricas alinhadas à direita, truncamento de textos longos e **quebra de página com repetição do cabeçalho**.
+- **Rodapé:** número da página ("Página X de Y") com `bufferedPageRange` + `switchToPage`, centralizado.
+
+Helpers: `desenharFaixa`, `desenharTabela`, `desenharRodape`, `desenharCapa`. Cor primária derivada do token `--primary` (hsl(202 68% 47%) = `#268EC9`).
+
+---
+
+## 8. Migração / Evolução
 
 As cores são **tokens** (não hex espalhado), portanto renomear/ajustar a identidade é feito em um único lugar (`tailwind.config.ts`). Mantenha os utilitários (`globals.css`) como fonte dos estilos compostos para consistência.

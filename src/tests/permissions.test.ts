@@ -8,16 +8,17 @@ describe("RBAC por perfil", () => {
     expect(temPermissao("ADMINISTRADOR", "relatorio:ver")).toBe(true);
   });
 
-  it("gestor da saúde só aprova exceção e vê relatórios", () => {
-    expect(temPermissao("GESTOR_SAUDE", "cota:excecao")).toBe(true);
+  it("gestor da saúde (admin interno) opera tudo", () => {
+    expect(temPermissao("GESTOR_SAUDE", "unidade:gerenciar")).toBe(true);
+    expect(temPermissao("GESTOR_SAUDE", "produto:gerenciar")).toBe(true);
+    expect(temPermissao("GESTOR_SAUDE", "usuario:gerenciar")).toBe(true);
+    expect(temPermissao("GESTOR_SAUDE", "movimentacao:gerenciar")).toBe(true);
+    expect(temPermissao("GESTOR_SAUDE", "requisicao:separar")).toBe(true);
+    expect(temPermissao("GESTOR_SAUDE", "requisicao:aprovar")).toBe(true);
+    expect(temPermissao("GESTOR_SAUDE", "inventario:gerenciar")).toBe(true);
     expect(temPermissao("GESTOR_SAUDE", "relatorio:ver")).toBe(true);
-    expect(temPermissao("GESTOR_SAUDE", "unidade:gerenciar")).toBe(false);
-  });
-
-  it("almoxarife movimenta e separa, mas não gerencia unidades", () => {
-    expect(temPermissao("ALMOXARIFE", "movimentacao:gerenciar")).toBe(true);
-    expect(temPermissao("ALMOXARIFE", "requisicao:separar")).toBe(true);
-    expect(temPermissao("ALMOXARIFE", "produto:gerenciar")).toBe(false);
+    expect(temPermissao("GESTOR_SAUDE", "auditoria:ver")).toBe(true);
+    expect(temPermissao("GESTOR_SAUDE", "cota:excecao")).toBe(true);
   });
 
   it("responsável de unidade apenas cria requisição", () => {

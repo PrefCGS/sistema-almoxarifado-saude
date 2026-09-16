@@ -61,7 +61,6 @@ enum PerfilUsuario {
   OWNER
   ADMINISTRADOR
   GESTOR_SAUDE
-  ALMOXARIFE
   RESPONSAVEL_UNIDADE
 }
 
@@ -104,6 +103,7 @@ model Produto {
   estoqueMinimo     Int               @default(0)
   estoqueMaximo     Int               @default(0)
   localizacaoFisica String?
+  preco             Float             @default(0)
   situacao          SituacaoProduto   @default(ATIVO)
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt

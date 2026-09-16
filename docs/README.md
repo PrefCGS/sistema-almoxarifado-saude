@@ -13,9 +13,11 @@ O conteúdo foi dividido em documentos por área para facilitar a navegação e 
 | [`DER.md`](./DER.md) | Modelo de dados: entidades, relacionamentos, cardinalidades, enums e índices (Prisma Schema). |
 | [`arquitetura.md`](./arquitetura.md) | Visão da arquitetura: stack, organização de pastas, camadas e fluxo de dados. |
 | [`autenticacao.md`](./autenticacao.md) | Autenticação (Better-Auth + Microsoft), cadastro de usuários e matriz de permissões (RBAC). |
+| [`perfis-de-acesso.md`](./perfis-de-acesso.md) | Perfis de acesso: o que cada perfil vê no menu e pode fazer. |
 | [`api.md`](./api.md) | Referência das rotas HTTP: endpoints, autenticação, payloads, validação e códigos de erro. |
 | [`fluxos.md`](./fluxos.md) | Fluxos de negócio: requisição de materiais, movimentação de estoque, inventário, cotas e alerta de validade. |
 | [`identidade-visual.md`](./identidade-visual.md) | Design system: paleta institucional, components utilitários e padrões de interface. |
+| [`components.md`](./components.md) | Componentes de UI e suas props. |
 | [`operacao.md`](./operacao.md) | Setup do ambiente, variáveis de ambiente, migrações, build e deploy. |
 | [`testes.md`](./testes.md) | Estratégia de testes, framework e suítes existentes. |
 
@@ -31,9 +33,9 @@ O sistema gerencia o estoque de **medicamentos**, **materiais médico-hospitalar
 
 ## Principais Personas / Perfis
 
-1. **Administrador** — gerencia tudo (unidades, produtos, usuários, cotas, requisições, relatórios, auditoria).
-2. **Gestor da Saúde** — aprova requisições e autoriza exceções de cota.
-3. **Almoxarife** — movimenta estoque, separa e entrega requisições, executa inventário.
-4. **Responsável da Unidade** — cria requisições, consulta saldo e relatórios da própria unidade.
+1. **Owner** (Secretaria de TI) — acesso total; único que altera perfil e unidade de usuários (atribuído via env).
+2. **Administrador** (TI) — também com acesso total, mas o sistema não é feito para a operação deles.
+3. **Gestor da Saúde** — admin interno da saúde: gerencia cadastros, estoque, requisições e inventário.
+4. **Responsável da Unidade** — cria requisições da própria unidade e consulta saldo/relatórios dela.
 
 Detalhes completos de permissões em [`autenticacao.md`](./autenticacao.md).

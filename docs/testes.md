@@ -35,14 +35,13 @@ npm run test:watch  # modo watch
 ### Cotas
 - Identificar quando **não** excede a cota.
 - **Bloquear** quando excede a cota disponível.
-- Apenas Gestor da Saúde/Administrador autoriza **exceção**.
+- Apenas Gestor da Saúde/Owner/Administrador autoriza **exceção**.
 - Quantidade aprovada respeita a cota **sem** exceção.
 - Quantidade aprovada libera o total **com** exceção.
 
 ### Permissões (RBAC)
 - Administrador tem **todas** as permissões.
-- Gestor da Saúde só aprova exceção e vê relatórios.
-- Almoxarife movimenta e separa, mas não gerencia unidades.
+- Gestor da Saúde (admin interno) opera tudo (cadastros, estoque, requisições, inventário).
 - Responsável da Unidade apenas cria requisição.
 - Perfil desconhecido não tem permissões.
 

@@ -8,7 +8,7 @@ import { AlertTriangle, ArrowLeftRight, BarChart3, Clock, Package, TrendingUp } 
 import Link from "next/link";
 
 export default async function DashboardPage() {
-  const [totalProdutos, saldos, lotes, movMes] = await Promise.all([
+  const [totalProdutos, saldos, lotes, movMes, distribuicoesMes] = await Promise.all([
     prisma.produto.count({ where: { situacao: "ATIVO" } }),
     prisma.saldoEstoque.findMany({ include: { produto: true } }),
     prisma.lote.findMany({ include: { produto: true } }),
@@ -17,6 +17,13 @@ export default async function DashboardPage() {
         tipo: "SAIDA_DISTRIBUICAO",
         dataMovimentacao: { gte: inicioDoMes() },
       },
+    }),
+    prisma.movimentacao.findMany({
+      where: {
+        tipo: "SAIDA_DISTRIBUICAO",
+        dataMovimentacao: { gte: inicioDoMes() },
+      },
+      include: { produto: true, unidadeDestino: true },
     }),
   ]);
 
@@ -29,7 +36,10 @@ export default async function DashboardPage() {
     (l) => diasParaVencer(l.dataValidade) <= 30 && diasParaVencer(l.dataValidade) > 0,
   ).length;
 
-  const valorEstoque = saldos.reduce((acc, s) => acc + s.quantidade, 0);
+  const valorEstoque = saldos.reduce(
+    (acc, s) => acc + s.quantidade * (s.produto.preco ?? 0),
+    0,
+  );
 
   const cards = [
     {
@@ -39,8 +49,8 @@ export default async function DashboardPage() {
       tile: "border-primary/20 text-primary bg-primary/5",
     },
     {
-      titulo: "Itens em estoque",
-      valor: valorEstoque,
+      titulo: "Valor do estoque",
+      valor: `R$ ${valorEstoque.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
       icon: BarChart3,
       tile: "border-primary/20 text-primary bg-primary/5",
     },
@@ -101,9 +111,10 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <ConsumoPorCategoria saldos={saldos} />
-        <ProximosVencimento lotes={lotes} />
+        <ConsumoPorUnidade distribuidas={distribuicoesMes} />
+        <ConsumoPorCategoria distribuidas={distribuicoesMes} />
       </div>
+      <ProximosVencimento lotes={lotes} />
     </div>
   );
 }
@@ -113,28 +124,73 @@ function inicioDoMes(): Date {
   return new Date(d.getFullYear(), d.getMonth(), 1);
 }
 
-function ConsumoPorCategoria({ saldos }: { saldos: { produto: { categoria: string } }[] }) {
+type Distribuida = {
+  quantidade: number;
+  produto: { categoria: string };
+  unidadeDestino: { nome: string } | null;
+};
+
+function ConsumoPorUnidade({ distribuidas }: { distribuidas: Distribuida[] }) {
   const map = new Map<string, number>();
-  for (const s of saldos) {
-    map.set(s.produto.categoria, (map.get(s.produto.categoria) ?? 0) + 1);
+  for (const m of distribuidas) {
+    const nome = m.unidadeDestino?.nome ?? "Almoxarifado";
+    map.set(nome, (map.get(nome) ?? 0) + m.quantidade);
   }
   const entries = Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
   const max = Math.max(...entries.map((e) => e[1]), 1);
 
   return (
     <Panel
-      title="Produtos por categoria"
+      title="Consumo por unidade"
       icon={TrendingUp}
-      action={<StatusPill tone="secondary">{entries.length} categorias</StatusPill>}
+      action={<StatusPill tone="secondary">{entries.length} unidade(s)</StatusPill>}
     >
       {entries.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Nenhuma categoria encontrada.</p>
+        <p className="text-sm text-muted-foreground">Nenhuma distribuição no mês.</p>
+      ) : (
+        <ul className="space-y-4">
+          {entries.map(([nome, qtd]) => (
+            <li key={nome} className="space-y-1.5">
+              <div className="flex items-center justify-between text-sm">
+                <span className="truncate font-medium text-slate-700">{nome}</span>
+                <span className={`text-primary ${numClass}`}>{qtd}</span>
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-[2px] bg-slate-100">
+                <div
+                  className="h-full rounded-[2px] bg-primary/70"
+                  style={{ width: `${(qtd / max) * 100}%` }}
+                />
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Panel>
+  );
+}
+
+function ConsumoPorCategoria({ distribuidas }: { distribuidas: Distribuida[] }) {
+  const map = new Map<string, number>();
+  for (const m of distribuidas) {
+    map.set(m.produto.categoria, (map.get(m.produto.categoria) ?? 0) + m.quantidade);
+  }
+  const entries = Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+  const max = Math.max(...entries.map((e) => e[1]), 1);
+
+  return (
+    <Panel
+      title="Consumo por categoria"
+      icon={TrendingUp}
+      action={<StatusPill tone="secondary">{entries.length} categoria(s)</StatusPill>}
+    >
+      {entries.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Nenhuma distribuição no mês.</p>
       ) : (
         <ul className="space-y-4">
           {entries.map(([cat, qtd]) => (
             <li key={cat} className="space-y-1.5">
               <div className="flex items-center justify-between text-sm">
-                <span className="font-medium text-slate-700">{cat}</span>
+                <span className="font-medium text-slate-700">{cat.replaceAll("_", " ")}</span>
                 <span className={`text-primary ${numClass}`}>{qtd}</span>
               </div>
               <div className="h-1.5 w-full overflow-hidden rounded-[2px] bg-slate-100">

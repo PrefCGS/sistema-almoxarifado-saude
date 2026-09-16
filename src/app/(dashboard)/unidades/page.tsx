@@ -2,10 +2,13 @@
 
 import PageHeader from "@/components/page-header";
 import ExpandableFormCard from "@/components/expandable-form-card";
+import Pagination from "@/components/pagination";
 import SearchBar from "@/components/search-bar";
 import StatusPill from "@/components/status-pill";
 import TableCard from "@/components/table-card";
 import { apiGet, apiPost } from "@/lib/api-client";
+import type { Paginado } from "@/lib/pagination";
+import { usePaginacao } from "@/lib/use-paginacao";
 import {
   btnPrimary,
   inputClass,
@@ -39,8 +42,14 @@ const TIPOS: Record<string, string> = {
 };
 
 export default function UnidadesPage() {
-  const [lista, setLista] = useState<Unidade[]>([]);
-  const [busca, setBusca] = useState("");
+  const [dados, setDados] = useState<Paginado<Unidade>>({
+    itens: [],
+    total: 0,
+    pagina: 1,
+    totalPaginas: 1,
+    porPagina: 15,
+  });
+  const { pagina, setPagina, busca, setBusca, buscaAplicada } = usePaginacao();
   const [form, setForm] = useState({
     codigo: "",
     nome: "",
@@ -57,14 +66,20 @@ export default function UnidadesPage() {
 
   async function carregar() {
     try {
-      setLista(await apiGet<Unidade[]>("/api/unidades"));
+      const params = new URLSearchParams({
+        page: String(pagina),
+        perPage: "15",
+      });
+      if (buscaAplicada) params.set("busca", buscaAplicada);
+      setDados(await apiGet<Paginado<Unidade>>(`/api/unidades?${params}`));
     } catch (e) {
       setErro(String(e));
     }
   }
+
   useEffect(() => {
     carregar();
-  }, []);
+  }, [pagina, buscaAplicada]);
 
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
@@ -83,18 +98,12 @@ export default function UnidadesPage() {
         email: "",
         responsavel: "",
       });
+      setPagina(1);
       carregar();
     } catch (e) {
       setErro(String(e));
     }
   }
-
-  const filtrados = lista.filter(
-    (u) =>
-      u.nome.toLowerCase().includes(busca.toLowerCase()) ||
-      u.codigo.toLowerCase().includes(busca.toLowerCase()) ||
-      u.cidade.toLowerCase().includes(busca.toLowerCase()),
-  );
 
   return (
     <div className="space-y-6">
@@ -110,7 +119,7 @@ export default function UnidadesPage() {
         </div>
       )}
 
-      <ExpandableFormCard title="Nova unidade" icon={Building2}>
+      <ExpandableFormCard buttonLabel="Nova unidade" title="Cadastro de unidade" icon={Building2}>
         <form onSubmit={salvar} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <input
             className={inputClass}
@@ -194,7 +203,7 @@ export default function UnidadesPage() {
       </ExpandableFormCard>
 
       <TableCard
-        count={filtrados.length}
+        count={dados.total}
         countLabel="unidade(s)"
         emptyMessage="Nenhuma unidade cadastrada."
         search={
@@ -216,7 +225,7 @@ export default function UnidadesPage() {
             </tr>
           </thead>
           <tbody>
-            {filtrados.map((u) => (
+            {dados.itens.map((u) => (
               <tr key={u.id} className={rowClass}>
                 <td className={`${tdClass} font-semibold text-primary`}>{u.codigo}</td>
                 <td className={`${tdClass} font-medium text-slate-800`}>{u.nome}</td>
@@ -231,7 +240,7 @@ export default function UnidadesPage() {
                 </td>
               </tr>
             ))}
-            {filtrados.length === 0 && (
+            {dados.total === 0 && (
               <tr>
                 <td className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={5}>
                   Nenhuma unidade cadastrada.
@@ -240,6 +249,16 @@ export default function UnidadesPage() {
             )}
           </tbody>
         </table>
+        {dados.totalPaginas > 1 && (
+          <Pagination
+            pagina={dados.pagina}
+            totalPaginas={dados.totalPaginas}
+            total={dados.total}
+            porPagina={dados.porPagina}
+            onChange={setPagina}
+            label="unidade(s)"
+          />
+        )}
       </TableCard>
     </div>
   );

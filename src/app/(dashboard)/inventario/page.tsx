@@ -1,7 +1,11 @@
 "use client";
 
 import { apiGet, apiPost } from "@/lib/api-client";
+import type { Paginado } from "@/lib/pagination";
+import { usePaginacao } from "@/lib/use-paginacao";
 import PageHeader from "@/components/page-header";
+import ExpandableFormCard from "@/components/expandable-form-card";
+import Pagination from "@/components/pagination";
 import Panel from "@/components/panel";
 import StatusPill from "@/components/status-pill";
 import {
@@ -38,9 +42,17 @@ function tipoLabel(tipo: string) {
 }
 
 export default function InventarioPage() {
-  const [lista, setLista] = useState<Inv[]>([]);
+  const [dados, setDados] = useState<Paginado<Inv>>({
+    itens: [],
+    total: 0,
+    pagina: 1,
+    totalPaginas: 1,
+    porPagina: 10,
+  });
+  const [abertos, setAbertos] = useState<Inv[]>([]);
   const [unidades, setUnidades] = useState<Unid[]>([]);
   const [produtos, setProdutos] = useState<Prod[]>([]);
+  const { pagina, setPagina } = usePaginacao();
   const [tipo, setTipo] = useState("GERAL");
   const [unidadeId, setUnidadeId] = useState("");
   const [contagem, setContagem] = useState({
@@ -50,14 +62,26 @@ export default function InventarioPage() {
   });
   const [erro, setErro] = useState<string | null>(null);
 
-  async function carregar() {
+  async function carregarDados() {
+    try {
+      const params = new URLSearchParams({
+        page: String(pagina),
+        perPage: "10",
+      });
+      setDados(await apiGet<Paginado<Inv>>(`/api/inventario?${params}`));
+    } catch (e) {
+      setErro(String(e));
+    }
+  }
+
+  async function carregarDropdowns() {
     try {
       const [i, u, p] = await Promise.all([
-        apiGet<Inv[]>("/api/inventario"),
+        apiGet<Inv[]>("/api/inventario?status=ABERTO"),
         apiGet<Unid[]>("/api/unidades"),
         apiGet<Prod[]>("/api/produtos"),
       ]);
-      setLista(i);
+      setAbertos(i);
       setUnidades(u);
       setProdutos(p);
       setUnidadeId(u[0]?.id ?? "");
@@ -65,8 +89,13 @@ export default function InventarioPage() {
       setErro(String(e));
     }
   }
+
   useEffect(() => {
-    carregar();
+    carregarDados();
+  }, [pagina]);
+
+  useEffect(() => {
+    carregarDropdowns();
   }, []);
 
   async function criar(e: React.FormEvent) {
@@ -75,7 +104,9 @@ export default function InventarioPage() {
     try {
       const novo = await apiPost<Inv>("/api/inventario", { unidadeId, tipo });
       setContagem({ inventarioId: novo.id, produtoId: "", quantidadeContada: 0 });
-      carregar();
+      setPagina(1);
+      carregarDados();
+      carregarDropdowns();
     } catch (e) {
       setErro(String(e));
     }
@@ -87,7 +118,7 @@ export default function InventarioPage() {
     try {
       await apiPost(`/api/inventario/${contagem.inventarioId}/contagens`, contagem);
       setContagem({ ...contagem, produtoId: "", quantidadeContada: 0 });
-      carregar();
+      carregarDados();
     } catch (e) {
       setErro(String(e));
     }
@@ -97,7 +128,9 @@ export default function InventarioPage() {
     setErro(null);
     try {
       await apiPost(`/api/inventario/${id}/finalizar`, {});
-      carregar();
+      setPagina(1);
+      carregarDados();
+      carregarDropdowns();
     } catch (e) {
       setErro(String(e));
     }
@@ -118,7 +151,7 @@ export default function InventarioPage() {
       )}
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Panel title="Abrir inventário" icon={Plus}>
+        <ExpandableFormCard buttonLabel="Abrir inventário" title="Abrir inventário" icon={Plus}>
           <form onSubmit={criar} className="flex flex-wrap gap-3">
             <select
               className={`${selectClass} flex-1`}
@@ -145,9 +178,13 @@ export default function InventarioPage() {
               Abrir
             </button>
           </form>
-        </Panel>
+        </ExpandableFormCard>
 
-        <Panel title="Registrar contagem" icon={ClipboardCheck}>
+        <ExpandableFormCard
+          buttonLabel="Registrar contagem"
+          title="Registrar contagem"
+          icon={ClipboardCheck}
+        >
           <form onSubmit={addContagem} className="flex flex-wrap gap-3">
             <select
               className={`${selectClass} flex-1`}
@@ -156,13 +193,11 @@ export default function InventarioPage() {
               required
             >
               <option value="">Inventário...</option>
-              {lista
-                .filter((i) => i.status === "ABERTO")
-                .map((i) => (
-                  <option key={i.id} value={i.id}>
-                    {i.unidade.nome} ({tipoLabel(i.tipo)})
-                  </option>
-                ))}
+              {abertos.map((i) => (
+                <option key={i.id} value={i.id}>
+                  {i.unidade.nome} ({tipoLabel(i.tipo)})
+                </option>
+              ))}
             </select>
             <select
               className={`${selectClass} flex-1`}
@@ -191,11 +226,11 @@ export default function InventarioPage() {
               Contar
             </button>
           </form>
-        </Panel>
+        </ExpandableFormCard>
       </div>
 
       <div className="space-y-5">
-        {lista.map((inv) => (
+        {dados.itens.map((inv) => (
           <Panel
             key={inv.id}
             title={`${inv.unidade.nome} — ${tipoLabel(inv.tipo)}`}
@@ -218,7 +253,7 @@ export default function InventarioPage() {
             flush
           >
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="min-w-full text-sm">
                 <thead>
                   <tr className={theadRowClass}>
                     <th className={thClass}>Produto</th>
@@ -265,12 +300,22 @@ export default function InventarioPage() {
             </div>
           </Panel>
         ))}
-        {lista.length === 0 && (
+        {dados.total === 0 && (
           <div className="rounded-md border border-dashed border-slate-300 bg-card p-10 text-center text-sm text-muted-foreground">
             Nenhum inventário aberto. Crie um acima para começar a contagem.
           </div>
         )}
       </div>
+      {dados.totalPaginas > 1 && (
+        <Pagination
+          pagina={dados.pagina}
+          totalPaginas={dados.totalPaginas}
+          total={dados.total}
+          porPagina={dados.porPagina}
+          onChange={setPagina}
+          label="inventário(s)"
+        />
+      )}
     </div>
   );
 }

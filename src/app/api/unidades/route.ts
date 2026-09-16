@@ -1,10 +1,32 @@
 import { prisma } from "@/lib/prisma";
 import { json, erro, requirePermissao } from "@/lib/api";
+import { paginado, parsePaginacao } from "@/lib/pagination";
 import { unidadeSchema } from "@/validators/unidade";
 import { registrarAuditoria } from "@/lib/audit";
 
-export async function GET() {
-  const unidades = await prisma.unidade.findMany({ orderBy: { nome: "asc" } });
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const busca = searchParams.get("busca")?.trim();
+  const where = busca
+    ? {
+        OR: [
+          { nome: { contains: busca, mode: "insensitive" as const } },
+          { codigo: { contains: busca, mode: "insensitive" as const } },
+          { cidade: { contains: busca, mode: "insensitive" as const } },
+        ],
+      }
+    : undefined;
+
+  if (searchParams.has("page")) {
+    const { pagina, porPagina, skip } = parsePaginacao(searchParams);
+    const [itens, total] = await Promise.all([
+      prisma.unidade.findMany({ where, orderBy: { nome: "asc" }, skip, take: porPagina }),
+      prisma.unidade.count({ where }),
+    ]);
+    return json(paginado(itens, total, pagina, porPagina));
+  }
+
+  const unidades = await prisma.unidade.findMany({ where, orderBy: { nome: "asc" } });
   return json(unidades);
 }
 

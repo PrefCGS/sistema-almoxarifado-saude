@@ -71,10 +71,9 @@ Acesse `http://localhost:3000`.
 
 ## Perfis de acesso
 
-- **OWNER / ADMINISTRADOR**: acesso total
-- **GESTOR_SAUDE**: aprova requisições e vê relatórios
-- **ALMOXARIFE**: movimentações, aprova/entrega requisições, inventários, relatórios
-- **RESPONSAVEL_UNIDADE**: cria requisições, relatórios
+- **OWNER / ADMINISTRADOR**: acesso total (TI) — o sistema não é feito para a operação diária deles
+- **GESTOR_SAUDE**: admin interno da saúde — gerencia cadastros, estoque, requisições e inventário
+- **RESPONSAVEL_UNIDADE**: cria requisições e consulta saldo/relatórios apenas da própria unidade
 
 ## Estrutura do projeto
 

@@ -56,7 +56,7 @@ Representa o **almoxarifado central** ou uma **unidade de saúde**.
 | `codigo` | `String` | UQ | Código da unidade (ex.: "UBS-01"). |
 | `nome` | `String` | — | Nome da unidade. |
 | `tipo` | `TipoUnidade` (enum) | — | Ver enum [§3.1](#31-tipounidade). |
-| `cnpj` | `String?` | — | CNPJ (opcional). |
+| `cnpj` | `String?` | — | CNPJ (**obrigatório** quando `tipo = ALMOXARIFADO_CENTRAL` — validação de negócio em `src/validators/unidade.ts`). |
 | `endereco` | `String` | — | Logradouro. |
 | `bairro` | `String` | — | Bairro. |
 | `cidade` | `String` | — | Cidade. |
@@ -93,6 +93,7 @@ Item controlado no estoque (medicamento, material hospitalar, limpeza/higiene).
 | `unidadeMedida` | `String` | — | Unidade de dispensação (ex.: "comprimido", "unidade"). |
 | `unidadeCompra` | `String?` | — | Unidade de compra (ex.: "caixa"). |
 | `fatorConversao` | `Int` | — | Fator de conversão compra→dispensação (default `1`). |
+| `preco` | `Decimal?` | — | Preço de referência (base do relatório financeiro e do card de valor de estoque). |
 | `fabricante` | `String?` | — | Fabricante. |
 | `estoqueMinimo` | `Int` | — | Ponto de pedido (default `0`). |
 | `estoqueMaximo` | `Int` | — | Limite de estoque (default `0`). |
@@ -330,7 +331,7 @@ Trilha de auditoria de operações relevantes.
 `ABERTA` · `EM_ANALISE` · `APROVADA` · `SEPARACAO` · `EM_TRANSPORTE` · `ENTREGUE` · `CANCELADA`
 
 ### 3.6 `PerfilUsuario`
-`OWNER` · `ADMINISTRADOR` · `GESTOR_SAUDE` · `ALMOXARIFE` · `RESPONSAVEL_UNIDADE`
+`OWNER` · `ADMINISTRADOR` · `GESTOR_SAUDE` · `RESPONSAVEL_UNIDADE`
 
 > **`OWNER`** é o perfil da **Secretaria de TI** (quem desenvolve e controla o sistema). Os OWNERs são definidos **exclusivamente via variável de ambiente** (`OWNERS`), nunca pela interface, pelo registro público ou por um administrador. Ver [`autenticacao.md`](./autenticacao.md#8-perfil-owner-secretaria-de-ti).
 

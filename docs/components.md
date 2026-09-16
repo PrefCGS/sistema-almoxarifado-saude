@@ -82,12 +82,13 @@ Pill de status com variantes.
 | `children` | `React.ReactNode` | Texto |
 
 ### `ExpandableFormCard`
-Card de formulário expansível.
+Padrão **"novo registro/cadastro"**: quando fechado exibe um botão primário (`+ <buttonLabel>`) que abre um card com título, botão fechar (X) e o formulário. Usado nas telas de unidades, produtos, cotas, usuários, requisições, movimentações de estoque e inventário.
 
 | Prop | Tipo | Descrição |
 | --- | --- | --- |
-| `title` | `string` | Título do card |
-| `icon` | `LucideIcon?` | Ícone do card |
+| `title` | `string` | Título do card aberto |
+| `buttonLabel` | `string?` | Rótulo do botão fechado (default `"Novo cadastro"`) |
+| `icon` | `LucideIcon?` | Ícone do botão/card |
 | `className` | `string?` | Classes adicionais |
 | `children` | `React.ReactNode` | Formulário |
 

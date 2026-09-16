@@ -1,13 +1,36 @@
-import { prisma } from "@/lib/prisma";
-import { json, erro, requirePermissao } from "@/lib/api";
-import { produtoSchema } from "@/validators/produto";
+import { erro, json, requirePermissao } from "@/lib/api";
 import { registrarAuditoria } from "@/lib/audit";
+import { paginado, parsePaginacao } from "@/lib/pagination";
+import { prisma } from "@/lib/prisma";
+import { produtoSchema } from "@/validators/produto";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const categoria = searchParams.get("categoria");
+  const busca = searchParams.get("busca")?.trim();
+  const where = {
+    ...(categoria ? { categoria: categoria as never } : {}),
+    ...(busca
+      ? {
+          OR: [
+            { descricao: { contains: busca, mode: "insensitive" as const } },
+            { codigoInterno: { contains: busca, mode: "insensitive" as const } },
+          ],
+        }
+      : {}),
+  };
+
+  if (searchParams.has("page")) {
+    const { pagina, porPagina, skip } = parsePaginacao(searchParams);
+    const [itens, total] = await Promise.all([
+      prisma.produto.findMany({ where, orderBy: { descricao: "asc" }, skip, take: porPagina }),
+      prisma.produto.count({ where }),
+    ]);
+    return json(paginado(itens, total, pagina, porPagina));
+  }
+
   const produtos = await prisma.produto.findMany({
-    where: categoria ? { categoria: categoria as never } : undefined,
+    where,
     orderBy: { descricao: "asc" },
   });
   return json(produtos);

@@ -1,6 +1,7 @@
 "use client";
 
 import { type Acao, temPermissao } from "@/lib/permissions";
+import { useSidebar } from "@/components/sidebar-context";
 import { cn } from "@/lib/utils";
 import {
   ArrowLeftRight,
@@ -13,7 +14,9 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  PanelLeft,
   Package,
+  ScrollText,
   Users,
   X,
 } from "lucide-react";
@@ -98,22 +101,59 @@ const ITENS: Item[] = [
     acao: "relatorio:ver",
     grupo: "Operações",
   },
+  {
+    href: "/auditoria",
+    label: "Auditoria",
+    icon: ScrollText,
+    acao: "auditoria:ver",
+    grupo: "Operações",
+  },
 ];
 
-function Brand() {
+function Brand({
+  collapsed,
+  onToggle,
+}: {
+  collapsed?: boolean;
+  onToggle?: () => void;
+}) {
+  if (collapsed && onToggle) {
+    return (
+      <div className="flex h-14 shrink-0 items-center justify-center border-b border-slate-200 bg-slate-900 px-2">
+        <button
+          onClick={onToggle}
+          type="button"
+          title="Expandir menu"
+          className="flex size-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+        >
+          <PanelLeft className="size-4 rotate-180" />
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <Link
-      href="/dashboard"
-      className="flex h-14 items-center gap-2.5 border-b border-slate-200 bg-slate-900 px-5"
-    >
-      <div className="flex size-8 items-center justify-center rounded bg-primary text-white">
-        <Box className="size-4" strokeWidth={2.5} />
-      </div>
-      <div className="min-w-0">
-         <p className="truncate text-[14px] font-bold leading-tight text-white">Estoque SCE</p>
-        <p className="text-[10px] leading-tight text-slate-400">Secretaria de Saúde</p>
-      </div>
-    </Link>
+    <div className="flex h-14 shrink-0 items-center gap-2.5 border-b border-slate-200 bg-slate-900 pl-5 pr-3">
+      <Link href="/dashboard" className="flex min-w-0 flex-1 items-center gap-2.5">
+        <div className="flex size-8 shrink-0 items-center justify-center rounded bg-primary text-white">
+          <Box className="size-4" strokeWidth={2.5} />
+        </div>
+        <div className="min-w-0">
+          <p className="truncate text-[14px] font-bold leading-tight text-white">Estoque SCE</p>
+          <p className="text-[10px] leading-tight text-slate-400">Secretaria de Saúde</p>
+        </div>
+      </Link>
+      {onToggle && (
+        <button
+          onClick={onToggle}
+          type="button"
+          title="Recolher menu"
+          className="flex size-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+        >
+          <PanelLeft className="size-4" />
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -121,17 +161,21 @@ function NavLink({
   item,
   active,
   onNavigate,
+  collapsed,
 }: {
   item: Item;
   active: boolean;
   onNavigate?: () => void;
+  collapsed?: boolean;
 }) {
   return (
     <Link
       href={item.href}
       onClick={onNavigate}
+      title={collapsed ? item.label : undefined}
       className={cn(
         "relative flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-[13px] font-medium transition-all",
+        collapsed && "justify-center px-0",
         active
           ? "bg-primary/10 text-primary font-semibold shadow-sm"
           : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 hover:shadow-sm",
@@ -139,7 +183,7 @@ function NavLink({
     >
       {active && <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r bg-primary" />}
       <item.icon className="size-4 shrink-0" strokeWidth={active ? 2.2 : 1.8} />
-      {item.label}
+      {!collapsed && item.label}
     </Link>
   );
 }
@@ -147,9 +191,13 @@ function NavLink({
 function SidebarContent({
   user,
   onNavigate,
+  collapsed,
+  onToggle,
 }: {
   user: User;
   onNavigate?: () => void;
+  collapsed?: boolean;
+  onToggle?: () => void;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -168,14 +216,16 @@ function SidebarContent({
 
   return (
     <div className="flex h-full flex-col">
-      <Brand />
+      <Brand collapsed={collapsed} onToggle={onToggle} />
 
-      <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-5">
+      <nav className={cn("flex-1 space-y-5 overflow-y-auto py-5", collapsed ? "px-2" : "px-3")}>
         {gruposFiltrados.map(({ grupo, itens }) => (
           <div key={grupo}>
-            <p className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
-              {grupo}
-            </p>
+            {!collapsed && (
+              <p className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                {grupo}
+              </p>
+            )}
             <div className="space-y-0.5">
               {itens.map((item) => (
                 <NavLink
@@ -183,6 +233,7 @@ function SidebarContent({
                   item={item}
                   active={pathname === item.href}
                   onNavigate={onNavigate}
+                  collapsed={collapsed}
                 />
               ))}
             </div>
@@ -197,10 +248,11 @@ function SidebarContent({
             logout();
           }}
           type="button"
+          title={collapsed ? "Sair da conta" : undefined}
           className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-card px-3 py-2 text-[12px] font-semibold text-slate-600 transition-all hover:border-destructive/30 hover:bg-destructive/5 hover:text-destructive"
         >
           <LogOut className="size-3.5" />
-          Sair da conta
+          {!collapsed && "Sair da conta"}
         </button>
       </div>
     </div>
@@ -209,6 +261,7 @@ function SidebarContent({
 
 export default function Sidebar({ user }: { user: User }) {
   const [aberto, setAberto] = useState(false);
+  const { collapsed, toggle } = useSidebar();
 
   return (
     <>
@@ -229,8 +282,13 @@ export default function Sidebar({ user }: { user: User }) {
         </Link>
       </header>
 
-      <aside className="fixed inset-y-0 left-0 z-50 hidden w-64 border-r border-slate-200 bg-card lg:block">
-        <SidebarContent user={user} />
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 hidden border-r border-slate-200 bg-card transition-[width] duration-200 lg:block",
+          collapsed ? "w-16" : "w-64",
+        )}
+      >
+        <SidebarContent user={user} collapsed={collapsed} onToggle={toggle} />
       </aside>
 
       <div

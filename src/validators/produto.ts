@@ -18,6 +18,7 @@ export const produtoSchema = z.object({
   estoqueMinimo: z.number().int().min(0).default(0),
   estoqueMaximo: z.number().int().min(0).default(0),
   localizacaoFisica: z.string().max(40).optional().nullable(),
+  preco: z.number().min(0).default(0),
   situacao: z.enum(["ATIVO", "INATIVO"]).default("ATIVO"),
 });
 

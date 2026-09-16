@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { json, erro, requireAuth } from "@/lib/api";
+import { paginado, parsePaginacao } from "@/lib/pagination";
 import { requisicaoSchema } from "@/validators/requisicao";
 import { temPermissao } from "@/lib/permissions";
 import { registrarAuditoria } from "@/lib/audit";
@@ -9,20 +10,29 @@ function proximoNumero(seq: number): string {
   return `REQ-${ano}-${String(seq).padStart(5, "0")}`;
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   const auth = await requireAuth();
   if ("erro" in auth) return auth.erro;
 
+  const { searchParams } = new URL(req.url);
   const where =
     auth.sessao.perfil === "RESPONSAVEL_UNIDADE"
       ? { unidadeId: auth.sessao.usuario.unidadeId ?? "none" }
       : {};
 
-  const requisicoes = await prisma.requisicao.findMany({
-    where,
-    include: { unidade: true, solicitante: true, itens: { include: { produto: true } } },
-    orderBy: { createdAt: "desc" },
-  });
+  const include = { unidade: true, solicitante: true, itens: { include: { produto: true } } };
+  const orderBy = { createdAt: "desc" as const };
+
+  if (searchParams.has("page")) {
+    const { pagina, porPagina, skip } = parsePaginacao(searchParams);
+    const [itens, total] = await Promise.all([
+      prisma.requisicao.findMany({ where, include, orderBy, skip, take: porPagina }),
+      prisma.requisicao.count({ where }),
+    ]);
+    return json(paginado(itens, total, pagina, porPagina));
+  }
+
+  const requisicoes = await prisma.requisicao.findMany({ where, include, orderBy });
   return json(requisicoes);
 }
 

@@ -1,8 +1,11 @@
 "use client";
 
 import { apiGet, apiPost } from "@/lib/api-client";
+import type { Paginado } from "@/lib/pagination";
+import { usePaginacao } from "@/lib/use-paginacao";
 import PageHeader from "@/components/page-header";
 import ExpandableFormCard from "@/components/expandable-form-card";
+import Pagination from "@/components/pagination";
 import StatusPill from "@/components/status-pill";
 import TableCard from "@/components/table-card";
 import {
@@ -27,9 +30,16 @@ type Cota = {
 };
 
 export default function CotasPage() {
-  const [cotas, setCotas] = useState<Cota[]>([]);
+  const [dados, setDados] = useState<Paginado<Cota>>({
+    itens: [],
+    total: 0,
+    pagina: 1,
+    totalPaginas: 1,
+    porPagina: 15,
+  });
   const [unidades, setUnidades] = useState<Opt[]>([]);
   const [produtos, setProdutos] = useState<Opt[]>([]);
+  const { pagina, setPagina } = usePaginacao();
   const [form, setForm] = useState({
     unidadeId: "",
     produtoId: "",
@@ -40,22 +50,33 @@ export default function CotasPage() {
   });
   const [erro, setErro] = useState<string | null>(null);
 
-  async function carregar() {
+  async function carregarDados() {
     try {
-      const [c, u, p] = await Promise.all([
-        apiGet<Cota[]>("/api/cotas"),
+      setDados(await apiGet<Paginado<Cota>>(`/api/cotas?page=${pagina}&perPage=15`));
+    } catch (e) {
+      setErro(String(e));
+    }
+  }
+
+  async function carregarDropdowns() {
+    try {
+      const [u, p] = await Promise.all([
         apiGet<{ id: string; nome: string }[]>("/api/unidades"),
         apiGet<{ id: string; descricao: string }[]>("/api/produtos"),
       ]);
-      setCotas(c);
       setUnidades(u.map((x) => ({ id: x.id, label: x.nome })));
       setProdutos(p.map((x) => ({ id: x.id, label: x.descricao })));
     } catch (e) {
       setErro(String(e));
     }
   }
+
   useEffect(() => {
-    carregar();
+    carregarDados();
+  }, [pagina]);
+
+  useEffect(() => {
+    carregarDropdowns();
   }, []);
 
   async function salvar(e: React.FormEvent) {
@@ -67,7 +88,8 @@ export default function CotasPage() {
         dataInicio: new Date(form.dataInicio),
         dataTermino: new Date(form.dataTermino),
       });
-      carregar();
+      setPagina(1);
+      carregarDados();
     } catch (e) {
       setErro(String(e));
     }
@@ -87,7 +109,7 @@ export default function CotasPage() {
         </div>
       )}
 
-      <ExpandableFormCard title="Nova cota" icon={BarChart3}>
+      <ExpandableFormCard buttonLabel="Nova cota" title="Cadastro de cota" icon={BarChart3}>
         <form
           onSubmit={salvar}
           className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
@@ -159,7 +181,7 @@ export default function CotasPage() {
       </ExpandableFormCard>
 
       <TableCard
-        count={cotas.length}
+        count={dados.total}
         countLabel="cota(s)"
         emptyMessage="Nenhuma cota cadastrada."
       >
@@ -173,7 +195,7 @@ export default function CotasPage() {
             </tr>
           </thead>
           <tbody>
-            {cotas.map((c) => (
+            {dados.itens.map((c) => (
               <tr key={c.id} className={rowClass}>
                 <td className={`${tdClass} text-foreground`}>{c.unidade.nome}</td>
                 <td className={`${tdClass} text-foreground`}>{c.produto.descricao}</td>
@@ -187,7 +209,7 @@ export default function CotasPage() {
                 </td>
               </tr>
             ))}
-            {cotas.length === 0 && (
+            {dados.total === 0 && (
               <tr>
                 <td className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={4}>
                   Nenhuma cota cadastrada.
@@ -196,6 +218,16 @@ export default function CotasPage() {
             )}
           </tbody>
         </table>
+        {dados.totalPaginas > 1 && (
+          <Pagination
+            pagina={dados.pagina}
+            totalPaginas={dados.totalPaginas}
+            total={dados.total}
+            porPagina={dados.porPagina}
+            onChange={setPagina}
+            label="cota(s)"
+          />
+        )}
       </TableCard>
     </div>
   );

@@ -1,8 +1,11 @@
 "use client";
 
 import { apiGet, apiPost } from "@/lib/api-client";
+import type { Paginado } from "@/lib/pagination";
+import { usePaginacao } from "@/lib/use-paginacao";
 import PageHeader from "@/components/page-header";
 import ExpandableFormCard from "@/components/expandable-form-card";
+import Pagination from "@/components/pagination";
 import SearchBar from "@/components/search-bar";
 import StatusPill from "@/components/status-pill";
 import TableCard from "@/components/table-card";
@@ -26,6 +29,7 @@ type Produto = {
   unidadeMedida: string;
   estoqueMinimo: number;
   estoqueMaximo: number;
+  preco: number;
   situacao: string;
 };
 
@@ -36,8 +40,14 @@ const CATS: Record<string, string> = {
 };
 
 export default function ProdutosPage() {
-  const [lista, setLista] = useState<Produto[]>([]);
-  const [busca, setBusca] = useState("");
+  const [dados, setDados] = useState<Paginado<Produto>>({
+    itens: [],
+    total: 0,
+    pagina: 1,
+    totalPaginas: 1,
+    porPagina: 15,
+  });
+  const { pagina, setPagina, busca, setBusca, buscaAplicada } = usePaginacao();
   const [form, setForm] = useState({
     codigoInterno: "",
     descricao: "",
@@ -47,19 +57,26 @@ export default function ProdutosPage() {
     estoqueMinimo: 0,
     estoqueMaximo: 0,
     localizacaoFisica: "",
+    preco: 0,
   });
   const [erro, setErro] = useState<string | null>(null);
 
   async function carregar() {
     try {
-      setLista(await apiGet<Produto[]>("/api/produtos"));
+      const params = new URLSearchParams({
+        page: String(pagina),
+        perPage: "15",
+      });
+      if (buscaAplicada) params.set("busca", buscaAplicada);
+      setDados(await apiGet<Paginado<Produto>>(`/api/produtos?${params}`));
     } catch (e) {
       setErro(String(e));
     }
   }
+
   useEffect(() => {
     carregar();
-  }, []);
+  }, [pagina, buscaAplicada]);
 
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
@@ -75,18 +92,14 @@ export default function ProdutosPage() {
         estoqueMinimo: 0,
         estoqueMaximo: 0,
         localizacaoFisica: "",
+        preco: 0,
       });
+      setPagina(1);
       carregar();
     } catch (e) {
       setErro(String(e));
     }
   }
-
-  const filtrados = lista.filter(
-    (p) =>
-      p.descricao.toLowerCase().includes(busca.toLowerCase()) ||
-      p.codigoInterno.toLowerCase().includes(busca.toLowerCase()),
-  );
 
   return (
     <div className="space-y-6">
@@ -102,7 +115,7 @@ export default function ProdutosPage() {
         </div>
       )}
 
-      <ExpandableFormCard title="Novo produto" icon={Package}>
+      <ExpandableFormCard buttonLabel="Novo produto" title="Cadastro de produto" icon={Package}>
         <form
           onSubmit={salvar}
           className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
@@ -164,6 +177,14 @@ export default function ProdutosPage() {
             value={form.localizacaoFisica}
             onChange={(e) => setForm({ ...form, localizacaoFisica: e.target.value })}
           />
+          <input
+            className={inputClass}
+            type="number"
+            step="0.01"
+            placeholder="Preço (R$)"
+            value={form.preco}
+            onChange={(e) => setForm({ ...form, preco: Number(e.target.value) })}
+          />
           <button className={btnPrimary} type="submit">
             <Plus className="size-4" />
             Salvar
@@ -172,7 +193,7 @@ export default function ProdutosPage() {
       </ExpandableFormCard>
 
       <TableCard
-        count={filtrados.length}
+        count={dados.total}
         countLabel="produto(s)"
         emptyMessage="Nenhum produto encontrado."
         search={
@@ -190,10 +211,11 @@ export default function ProdutosPage() {
               <th className={thClass}>Descrição</th>
               <th className={thClass}>Categoria</th>
               <th className={`${thClass} text-right`}>Mín / Máx</th>
+              <th className={`${thClass} text-right`}>Preço</th>
             </tr>
           </thead>
           <tbody>
-            {filtrados.map((p) => (
+            {dados.itens.map((p) => (
               <tr key={p.id} className={rowClass}>
                 <td className={`${tdClass} font-medium text-primary`}>{p.codigoInterno}</td>
                 <td className={`${tdClass} text-foreground`}>{p.descricao}</td>
@@ -203,9 +225,12 @@ export default function ProdutosPage() {
                 <td className={`${tdClass} text-right text-muted-foreground tabular-nums`}>
                   {p.estoqueMinimo} / {p.estoqueMaximo}
                 </td>
+                <td className={`${tdClass} text-right font-semibold tabular-nums`}>
+                  R$ {(p.preco ?? 0).toFixed(2)}
+                </td>
               </tr>
             ))}
-            {filtrados.length === 0 && (
+            {dados.total === 0 && (
               <tr>
                 <td className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={4}>
                   Nenhum produto encontrado.
@@ -214,6 +239,16 @@ export default function ProdutosPage() {
             )}
           </tbody>
         </table>
+        {dados.totalPaginas > 1 && (
+          <Pagination
+            pagina={dados.pagina}
+            totalPaginas={dados.totalPaginas}
+            total={dados.total}
+            porPagina={dados.porPagina}
+            onChange={setPagina}
+            label="produto(s)"
+          />
+        )}
       </TableCard>
     </div>
   );

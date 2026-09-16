@@ -25,7 +25,7 @@ export async function criarUsuario(prisma: PrismaClient, input: UsuarioInput) {
       nome: dados.nome,
       email: dados.email,
       perfil: dados.perfil,
-      unidadeId: dados.unidadeId ?? null,
+      unidadeId: dados.perfil === "RESPONSAVEL_UNIDADE" ? dados.unidadeId : null,
       ativo: dados.ativo,
     },
   });

@@ -152,7 +152,7 @@ scripts/
 
 - **Provedores**: Better-Auth com suporte a Microsoft Entra ID SSO.
 - **Sessão**: cookie HTTP-only, com expiração padrão de 7 dias.
-- **Perfis**: `OWNER`, `ADMINISTRADOR`, `GESTOR_SAUDE`, `ALMOXARIFE`, `RESPONSAVEL_UNIDADE`.
+- **Perfis**: `OWNER`, `ADMINISTRADOR`, `GESTOR_SAUDE`, `RESPONSAVEL_UNIDADE`.
 - **Permissões**: matriz de ações por perfil em `src/lib/permissions.ts`. Rotas de API usam helpers `requireAuth()` e `requirePermissao()`.
 - **Proteção de rotas**: layout do dashboard valida sessão; páginas client-side podem refinar acesso por UI, mas a regra principal está no backend.
 

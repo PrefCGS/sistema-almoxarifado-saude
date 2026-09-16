@@ -34,19 +34,11 @@ const PERMISSOES_OPERACAO: Acao[] = [
 ];
 
 // OWNER (Secretaria de TI, definido via env) tem controle pleno do sistema.
+// ADMINISTRADOR e GESTOR_SAUDE são os "admins internos": operam tudo.
 const MATRIZ: Record<PerfilUsuario, Acao[]> = {
   OWNER: PERMISSOES_OPERACAO,
   ADMINISTRADOR: PERMISSOES_OPERACAO,
-  GESTOR_SAUDE: ["dashboard:ver", "cota:excecao", "requisicao:aprovar", "relatorio:ver"],
-  ALMOXARIFE: [
-    "dashboard:ver",
-    "movimentacao:gerenciar",
-    "requisicao:aprovar",
-    "requisicao:separar",
-    "requisicao:entregar",
-    "inventario:gerenciar",
-    "relatorio:ver",
-  ],
+  GESTOR_SAUDE: PERMISSOES_OPERACAO,
   RESPONSAVEL_UNIDADE: ["dashboard:ver", "requisicao:criar", "relatorio:ver"],
 };
 
@@ -62,6 +54,5 @@ export const LABEL_PERFIL: Record<PerfilUsuario, string> = {
   OWNER: "Secretaria de TI",
   ADMINISTRADOR: "Administrador",
   GESTOR_SAUDE: "Gestor da Saúde",
-  ALMOXARIFE: "Almoxarife",
   RESPONSAVEL_UNIDADE: "Responsável da Unidade",
 };

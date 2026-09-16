@@ -1,8 +1,11 @@
 "use client";
 
 import { apiGet, apiPost } from "@/lib/api-client";
+import type { Paginado } from "@/lib/pagination";
+import { usePaginacao } from "@/lib/use-paginacao";
 import PageHeader from "@/components/page-header";
-import Panel from "@/components/panel";
+import ExpandableFormCard from "@/components/expandable-form-card";
+import Pagination from "@/components/pagination";
 import StatusPill from "@/components/status-pill";
 import TableCard from "@/components/table-card";
 import {
@@ -10,6 +13,7 @@ import {
   btnPrimary,
   btnPrimarySm,
   btnSecondary,
+  btnSecondarySm,
   inputClass,
   rowClass,
   selectClass,
@@ -17,7 +21,7 @@ import {
   thClass,
   theadRowClass,
 } from "@/lib/ui";
-import { ClipboardList, Minus, Plus, Send } from "lucide-react";
+import { ClipboardList, FileText, Minus, Plus, Send } from "lucide-react";
 import { useEffect, useState } from "react";
 import { transicoesPermitidas } from "@/services/requisicoes";
 
@@ -54,7 +58,13 @@ function statusTone(status: string) {
 }
 
 export default function RequisicoesPage() {
-  const [lista, setLista] = useState<Req[]>([]);
+  const [dados, setDados] = useState<Paginado<Req>>({
+    itens: [],
+    total: 0,
+    pagina: 1,
+    totalPaginas: 1,
+    porPagina: 15,
+  });
   const [produtos, setProdutos] = useState<Prod[]>([]);
   const [unidades, setUnidades] = useState<Unid[]>([]);
   const [me, setMe] = useState<Me | null>(null);
@@ -62,28 +72,31 @@ export default function RequisicoesPage() {
   const [itens, setItens] = useState<{ produtoId: string; quantidadeSolicitada: number }[]>([
     { produtoId: "", quantidadeSolicitada: 1 },
   ]);
+  const { pagina, setPagina } = usePaginacao();
   const [erro, setErro] = useState<string | null>(null);
 
   async function carregar() {
     try {
       const [r, p, u, m] = await Promise.all([
-        apiGet<Req[]>("/api/requisicoes"),
-        apiGet<Prod[]>("/api/produtos"),
-        apiGet<Unid[]>("/api/unidades"),
-        apiGet<Me>("/api/usuarios/me"),
+        apiGet<Paginado<Req>>(`/api/requisicoes?page=${pagina}&perPage=15`),
+        produtos.length === 0 ? apiGet<Prod[]>("/api/produtos") : Promise.resolve(produtos),
+        unidades.length === 0 ? apiGet<Unid[]>("/api/unidades") : Promise.resolve(unidades),
+        !me ? apiGet<Me>("/api/usuarios/me") : Promise.resolve(me),
       ]);
-      setLista(r);
-      setProdutos(p);
-      setUnidades(u);
-      setMe(m);
-      setUnidadeId(m.unidadeId ?? u[0]?.id ?? "");
+      setDados(r);
+      if (produtos.length === 0) setProdutos(p);
+      if (unidades.length === 0) setUnidades(u);
+      if (!me) {
+        setMe(m);
+        setUnidadeId(m.unidadeId ?? u[0]?.id ?? "");
+      }
     } catch (e) {
       setErro(String(e));
     }
   }
   useEffect(() => {
     carregar();
-  }, []);
+  }, [pagina]);
 
   function addItem() {
     setItens([...itens, { produtoId: "", quantidadeSolicitada: 1 }]);
@@ -105,6 +118,7 @@ export default function RequisicoesPage() {
         itens: itens.filter((i) => i.produtoId),
       });
       setItens([{ produtoId: "", quantidadeSolicitada: 1 }]);
+      setPagina(1);
       carregar();
     } catch (e) {
       setErro(String(e));
@@ -124,6 +138,26 @@ export default function RequisicoesPage() {
     }
   }
 
+  function baixarGuia(id: string) {
+    setErro(null);
+    fetch(`/api/requisicoes/${id}/guia`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Não foi possível gerar a guia");
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `guia_separacao_${id}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      })
+      .catch((e) => setErro(String(e)));
+  }
+
+  function podeBaixarGuia(status: string) {
+    return ["APROVADA", "SEPARACAO", "EM_TRANSPORTE"].includes(status);
+  }
+
   const perfil = (me?.perfil ?? "RESPONSAVEL_UNIDADE") as never;
 
   return (
@@ -140,7 +174,11 @@ export default function RequisicoesPage() {
         </div>
       )}
 
-      <Panel title="Nova requisição" icon={Plus}>
+      <ExpandableFormCard
+        buttonLabel="Nova requisição"
+        title="Criar requisição"
+        icon={ClipboardList}
+      >
         <form onSubmit={criar} className="space-y-3">
           <select
             className={selectClass}
@@ -199,10 +237,10 @@ export default function RequisicoesPage() {
             </button>
           </div>
         </form>
-      </Panel>
+      </ExpandableFormCard>
 
       <TableCard
-        count={lista.length}
+        count={dados.total}
         countLabel="requisição(ões)"
         emptyMessage="Nenhuma requisição."
       >
@@ -217,7 +255,7 @@ export default function RequisicoesPage() {
             </tr>
           </thead>
           <tbody>
-            {lista.map((r) => {
+            {dados.itens.map((r) => {
               const trans = me ? transicoesPermitidas(r.status as never, perfil) : [];
               const podeExcecao =
                 perfil === "GESTOR_SAUDE" || perfil === "ADMINISTRADOR" || perfil === "OWNER";
@@ -252,6 +290,17 @@ export default function RequisicoesPage() {
                   </td>
                   <td className={tdClass}>
                     <div className="flex flex-wrap gap-1">
+                      {podeBaixarGuia(r.status) && (
+                        <button
+                          className={btnSecondarySm}
+                          type="button"
+                          title="Baixar guia de separação"
+                          onClick={() => baixarGuia(r.id)}
+                        >
+                          <FileText className="size-3.5" />
+                          Guia
+                        </button>
+                      )}
                       {trans.map((t) => (
                         <button
                           key={t}
@@ -276,7 +325,7 @@ export default function RequisicoesPage() {
                 </tr>
               );
             })}
-            {lista.length === 0 && (
+            {dados.total === 0 && (
               <tr>
                 <td className="px-4 py-10 text-center text-sm text-muted-foreground" colSpan={5}>
                   Nenhuma requisição.
@@ -285,6 +334,16 @@ export default function RequisicoesPage() {
             )}
           </tbody>
         </table>
+        {dados.totalPaginas > 1 && (
+          <Pagination
+            pagina={dados.pagina}
+            totalPaginas={dados.totalPaginas}
+            total={dados.total}
+            porPagina={dados.porPagina}
+            onChange={setPagina}
+            label="requisição(ões)"
+          />
+        )}
       </TableCard>
     </div>
   );

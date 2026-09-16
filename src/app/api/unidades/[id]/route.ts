@@ -1,7 +1,7 @@
-import { prisma } from "@/lib/prisma";
-import { json, erro, requirePermissao } from "@/lib/api";
-import { unidadeSchema } from "@/validators/unidade";
+import { erro, json, requirePermissao } from "@/lib/api";
 import { registrarAuditoria } from "@/lib/audit";
+import { prisma } from "@/lib/prisma";
+import { unidadePartialSchema } from "@/validators/unidade";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -16,7 +16,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   const { id } = await params;
 
   const body = await req.json().catch(() => null);
-  const parsed = unidadeSchema.partial().safeParse(body);
+  const parsed = unidadePartialSchema.safeParse(body);
   if (!parsed.success) return erro(parsed.error.errors[0].message, 422);
 
   const unidade = await prisma.unidade.update({
